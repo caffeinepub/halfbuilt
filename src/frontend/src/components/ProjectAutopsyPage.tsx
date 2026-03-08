@@ -192,12 +192,19 @@ const fadeSlide: Variants = {
 interface ProjectAutopsyPageProps {
   project: Project;
   onBack: () => void;
+  onOpenSubmission?: (prefill: {
+    projectName: string;
+    githubUrl: string;
+    abandonmentReason: string;
+    askingPrice: string;
+  }) => void;
 }
 
 // ── Component ────────────────────────────────────────────────────
 export function ProjectAutopsyPage({
   project,
   onBack,
+  onOpenSubmission,
 }: ProjectAutopsyPageProps) {
   const cod = getCodColor(project.causeOfDeath);
   const scoreColor = getScoreColor(project.potentialScore);
@@ -693,6 +700,14 @@ export function ProjectAutopsyPage({
                 data-ocid="autopsy.revive_button"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={() =>
+                  onOpenSubmission?.({
+                    projectName: project.name,
+                    githubUrl: "https://github.com/",
+                    abandonmentReason: project.causeOfDeath,
+                    askingPrice: String(project.price),
+                  })
+                }
                 className="w-full max-w-2xl py-6 rounded-2xl font-mono font-black text-xl sm:text-2xl tracking-wide text-black transition-all duration-200 cursor-pointer"
                 style={{
                   background:

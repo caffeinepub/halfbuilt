@@ -184,11 +184,19 @@ type SubmitState = "idle" | "loading" | "success";
 interface ProjectSubmissionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialProjectName?: string;
+  initialGithubUrl?: string;
+  initialAbandonmentReason?: string;
+  initialAskingPrice?: string;
 }
 
 function ProjectSubmissionModal({
   open,
   onOpenChange,
+  initialProjectName,
+  initialGithubUrl,
+  initialAbandonmentReason,
+  initialAskingPrice,
 }: ProjectSubmissionModalProps) {
   const [projectName, setProjectName] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
@@ -203,9 +211,18 @@ function ProjectSubmissionModal({
   const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Cleanup timers on unmount or close
+  // Pre-fill or reset form when modal opens/closes
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      // Pre-fill if props are provided, otherwise reset to empty
+      setProjectName(initialProjectName ?? "");
+      setGithubUrl(initialGithubUrl ?? "");
+      setAbandonmentReason(initialAbandonmentReason ?? "");
+      setAskingPrice(initialAskingPrice ?? "");
+      setVerifyState("idle");
+      setPublicity("graveyard");
+      setSubmitState("idle");
+    } else {
       // Reset form state when closed
       setProjectName("");
       setGithubUrl("");
@@ -220,7 +237,13 @@ function ProjectSubmissionModal({
       if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     };
-  }, [open]);
+  }, [
+    open,
+    initialProjectName,
+    initialGithubUrl,
+    initialAbandonmentReason,
+    initialAskingPrice,
+  ]);
 
   function handleVerify() {
     if (verifyState === "verifying") return;
@@ -544,17 +567,121 @@ function ProjectSubmissionModal({
   );
 }
 
+// ── Scroll Progress Bar ───────────────────────────────────────────
+function ScrollProgressBar() {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    function update() {
+      const scrollTop = window.scrollY;
+      const docHeight =
+        document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight <= 0) {
+        setProgress(0);
+        return;
+      }
+      setProgress(Math.min(100, (scrollTop / docHeight) * 100));
+    }
+    window.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => window.removeEventListener("scroll", update);
+  }, []);
+
+  return (
+    <div
+      aria-hidden="true"
+      data-ocid="scroll_progress.section"
+      className="fixed top-0 left-0 right-0 z-[60] h-[2px] pointer-events-none"
+      style={{ background: "transparent" }}
+    >
+      <div
+        className="h-full transition-none"
+        style={{
+          width: `${progress}%`,
+          background:
+            "linear-gradient(90deg, oklch(0.62 0.24 285), oklch(0.7 0.15 195))",
+          boxShadow: "0 0 8px oklch(0.62 0.24 285 / 0.7)",
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Founder Spots Banner ──────────────────────────────────────────
+const TOTAL_FOUNDER_SPOTS = 100;
+const TAKEN_SPOTS = 23; // simulate spots already taken
+
+function FounderSpotsBanner({
+  onOpenSubmission,
+  onDismiss,
+}: {
+  onOpenSubmission: () => void;
+  onDismiss: () => void;
+}) {
+  const remaining = TOTAL_FOUNDER_SPOTS - TAKEN_SPOTS;
+
+  return (
+    <div
+      data-ocid="founder_banner.section"
+      className="fixed top-0 left-0 right-0 z-[55] flex items-center justify-center gap-3 px-4 py-2 text-xs font-mono"
+      style={{
+        background:
+          "linear-gradient(90deg, oklch(0.09 0.02 285), oklch(0.10 0.02 195), oklch(0.09 0.02 285))",
+        borderBottom: "1px solid oklch(0.62 0.24 285 / 0.25)",
+      }}
+    >
+      {/* Pulse dot */}
+      <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-violet-400" />
+      </span>
+
+      <span className="text-muted-foreground/80">
+        <span className="text-violet-300 font-bold">
+          {remaining} of {TOTAL_FOUNDER_SPOTS}
+        </span>{" "}
+        Founder Spots remaining — lock in your badge before launch
+      </span>
+
+      <button
+        type="button"
+        data-ocid="founder_banner.primary_button"
+        onClick={onOpenSubmission}
+        className="flex-shrink-0 px-2.5 py-0.5 rounded text-[11px] font-bold text-white transition-all duration-150 hover:opacity-90"
+        style={{
+          background: "oklch(0.62 0.24 285 / 0.85)",
+          border: "1px solid oklch(0.62 0.24 285 / 0.5)",
+        }}
+      >
+        Claim Spot
+      </button>
+
+      <button
+        type="button"
+        data-ocid="founder_banner.close_button"
+        onClick={onDismiss}
+        aria-label="Dismiss banner"
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+      >
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
 // ── Navbar ─────────────────────────────────────────────────────────
 function Navbar({
   onOpenSubmission,
   onNavigateProfile,
   onNavigateTransaction,
   onNavigatePayouts,
+  hasBanner,
 }: {
   onOpenSubmission: () => void;
   onNavigateProfile: () => void;
   onNavigateTransaction: () => void;
   onNavigatePayouts: () => void;
+  hasBanner: boolean;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -574,11 +701,12 @@ function Navbar({
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
           ? "bg-[oklch(0.08_0.005_280/0.92)] backdrop-blur-xl border-b border-[oklch(0.35_0.04_285/0.2)]"
           : "bg-transparent"
       }`}
+      style={{ top: hasBanner ? "30px" : "0px" }}
     >
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         {/* Logo */}
@@ -1695,6 +1823,104 @@ function FeedControls({
   );
 }
 
+// ── Ticker Tape ───────────────────────────────────────────────────
+const TICKER_MESSAGES = [
+  "FlowSync just got 3 new watchers",
+  "PricePulse was listed 2h ago",
+  "CodeMentor AI sold for $1,900 · 🔥",
+  "GigStack got a new offer",
+  "ChartBlocks reached 208 watchers",
+  "New project listed: Habitflow",
+  "FlowSync: Potential Score 91%",
+  "3 buyers viewing PricePulse right now",
+  "Repo Transfer completed on TaskForge",
+  "HalfBuilt: 8,400+ builders active",
+];
+
+function TickerTape() {
+  const doubled = [...TICKER_MESSAGES, ...TICKER_MESSAGES];
+  return (
+    <div className="relative mb-10 overflow-hidden" style={{ height: "36px" }}>
+      <style>{`
+        @keyframes ticker {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .ticker-track {
+          animation: ticker 30s linear infinite;
+        }
+        .ticker-track:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+
+      {/* Strip background */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "oklch(0.07 0.005 200 / 0.8)",
+          borderTop: "1px solid rgba(0,229,255,0.12)",
+          borderBottom: "1px solid rgba(0,229,255,0.12)",
+        }}
+      />
+
+      {/* Left fade mask */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(90deg, oklch(0.07 0.005 200 / 0.95), transparent)",
+        }}
+      />
+
+      {/* Right fade mask */}
+      <div
+        className="absolute right-0 top-0 bottom-0 w-20 z-10 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(270deg, oklch(0.07 0.005 200 / 0.95), transparent)",
+        }}
+      />
+
+      {/* ⚡ LIVE badge — pinned left, above scrolling content */}
+      <div
+        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 flex items-center gap-1 px-2 py-0.5 rounded-sm"
+        style={{
+          background: "rgba(0,229,255,0.12)",
+          border: "1px solid rgba(0,229,255,0.25)",
+        }}
+      >
+        <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-cyan-400" />
+        </span>
+        <span className="font-mono font-bold text-[9px] tracking-widest uppercase text-cyan-400">
+          LIVE
+        </span>
+      </div>
+
+      {/* Scrolling content */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="ticker-track flex items-center h-full gap-0 w-max pl-28">
+          {doubled.map((msg, i) => (
+            <span
+              key={`ticker-${i % TICKER_MESSAGES.length}-${i >= TICKER_MESSAGES.length ? "b" : "a"}`}
+              className="flex items-center gap-0 flex-shrink-0"
+            >
+              <span className="font-mono text-xs text-cyan-400/70 px-4">
+                {msg}
+              </span>
+              <span className="text-cyan-400/30 font-mono text-xs select-none">
+                ◆
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Projects Section ──────────────────────────────────────────────
 function ProjectsSection({
   onOpenSubmission,
@@ -1782,6 +2008,9 @@ function ProjectsSection({
             : "Each listing includes a Potential Score, Cause of Death, and full source access."}
         </motion.p>
       </motion.div>
+
+      {/* ── Ticker Tape ── always shown */}
+      <TickerTape />
 
       {/* Loading state */}
       {isLoading && (
@@ -2250,7 +2479,11 @@ function ResurrectionSection() {
 }
 
 // ── List CTA Section ──────────────────────────────────────────────
-function ListCtaSection() {
+function ListCtaSection({
+  onOpenSubmission,
+}: {
+  onOpenSubmission: () => void;
+}) {
   return (
     <section id="list" className="py-24 px-4 sm:px-6">
       <motion.div
@@ -2293,7 +2526,11 @@ function ListCtaSection() {
             variants={itemVariants}
             className="flex flex-col sm:flex-row items-center justify-center gap-3"
           >
-            <Button className="bg-violet-600 hover:bg-violet-500 text-white font-bold text-base px-8 py-6 rounded-lg transition-all duration-200 hover:shadow-[0_0_30px_oklch(0.62_0.24_285/0.5)] w-full sm:w-auto">
+            <Button
+              onClick={onOpenSubmission}
+              data-ocid="list_cta.primary_button"
+              className="bg-violet-600 hover:bg-violet-500 text-white font-bold text-base px-8 py-6 rounded-lg transition-all duration-200 hover:shadow-[0_0_30px_oklch(0.62_0.24_285/0.5)] w-full sm:w-auto"
+            >
               List Your Project Free
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -2408,6 +2645,23 @@ function Footer() {
                   className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Privacy
+                </a>
+              </li>
+              <li>
+                <a
+                  data-ocid="footer.trust.status.link"
+                  href="#status"
+                  className="flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {/* Green uptime pulse */}
+                  <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
+                  </span>
+                  Status Page
+                  <span className="text-emerald-400/70 text-[10px] font-mono">
+                    99.9%
+                  </span>
                 </a>
               </li>
             </ul>
@@ -2544,11 +2798,29 @@ export default function App() {
   const [submissionOpen, setSubmissionOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [view, setView] = useState<AppView>("home");
+  const [submissionPrefill, setSubmissionPrefill] = useState<{
+    projectName?: string;
+    githubUrl?: string;
+    abandonmentReason?: string;
+    askingPrice?: string;
+  }>({});
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  function openSubmissionWithPrefill(prefill: {
+    projectName?: string;
+    githubUrl?: string;
+    abandonmentReason?: string;
+    askingPrice?: string;
+  }) {
+    setSubmissionPrefill(prefill);
+    setSubmissionOpen(true);
+  }
 
   // Payouts view
   if (view === "payouts") {
     return (
       <div className="min-h-screen bg-[#0a0f1e] text-foreground">
+        <ScrollProgressBar />
         <SecurePayoutsPage onBack={() => setView("home")} />
         <Toaster theme="dark" position="bottom-right" />
       </div>
@@ -2559,6 +2831,7 @@ export default function App() {
   if (view === "transaction") {
     return (
       <div className="min-h-screen bg-background text-foreground">
+        <ScrollProgressBar />
         <TransactionStatusPage onBack={() => setView("home")} />
         <Toaster theme="dark" position="bottom-right" />
       </div>
@@ -2569,11 +2842,13 @@ export default function App() {
   if (view === "profile") {
     return (
       <div className="min-h-screen bg-background text-foreground">
+        <ScrollProgressBar />
         <Navbar
           onOpenSubmission={() => setSubmissionOpen(true)}
           onNavigateProfile={() => setView("profile")}
           onNavigateTransaction={() => setView("transaction")}
           onNavigatePayouts={() => setView("payouts")}
+          hasBanner={false}
         />
         <main className="pt-16">
           <BuilderProfilePage onBack={() => setView("home")} />
@@ -2581,7 +2856,14 @@ export default function App() {
         <Footer />
         <ProjectSubmissionModal
           open={submissionOpen}
-          onOpenChange={setSubmissionOpen}
+          onOpenChange={(o) => {
+            setSubmissionOpen(o);
+            if (!o) setSubmissionPrefill({});
+          }}
+          initialProjectName={submissionPrefill.projectName}
+          initialGithubUrl={submissionPrefill.githubUrl}
+          initialAbandonmentReason={submissionPrefill.abandonmentReason}
+          initialAskingPrice={submissionPrefill.askingPrice}
         />
         <Toaster theme="dark" position="bottom-right" />
       </div>
@@ -2592,9 +2874,14 @@ export default function App() {
   if (selectedProject) {
     return (
       <div className="min-h-screen bg-background text-foreground">
+        <ScrollProgressBar />
         <ProjectAutopsyPage
           project={selectedProject}
           onBack={() => setSelectedProject(null)}
+          onOpenSubmission={(prefill) => {
+            setSelectedProject(null);
+            openSubmissionWithPrefill(prefill);
+          }}
         />
         <Toaster theme="dark" position="bottom-right" />
       </div>
@@ -2602,22 +2889,31 @@ export default function App() {
   }
 
   // Home view
+  const showBanner = !bannerDismissed;
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <ScrollProgressBar />
+      {showBanner && (
+        <FounderSpotsBanner
+          onOpenSubmission={() => setSubmissionOpen(true)}
+          onDismiss={() => setBannerDismissed(true)}
+        />
+      )}
       <Navbar
         onOpenSubmission={() => setSubmissionOpen(true)}
         onNavigateProfile={() => setView("profile")}
         onNavigateTransaction={() => setView("transaction")}
         onNavigatePayouts={() => setView("payouts")}
+        hasBanner={showBanner}
       />
-      <main>
+      <main style={{ paddingTop: showBanner ? "30px" : "0px" }}>
         <Hero onOpenSubmission={() => setSubmissionOpen(true)} />
         <ProjectValuationTool
           onOpenSubmission={() => setSubmissionOpen(true)}
         />
         <WallOfFailureSection />
         <RepositoryAuditDashboard />
-        <ListCtaSection />
+        <ListCtaSection onOpenSubmission={() => setSubmissionOpen(true)} />
         <ProjectsSection
           onOpenSubmission={() => setSubmissionOpen(true)}
           onViewProject={(project) => setSelectedProject(project)}
@@ -2628,7 +2924,14 @@ export default function App() {
       <Footer />
       <ProjectSubmissionModal
         open={submissionOpen}
-        onOpenChange={setSubmissionOpen}
+        onOpenChange={(o) => {
+          setSubmissionOpen(o);
+          if (!o) setSubmissionPrefill({});
+        }}
+        initialProjectName={submissionPrefill.projectName}
+        initialGithubUrl={submissionPrefill.githubUrl}
+        initialAbandonmentReason={submissionPrefill.abandonmentReason}
+        initialAskingPrice={submissionPrefill.askingPrice}
       />
       <Toaster
         theme="dark"

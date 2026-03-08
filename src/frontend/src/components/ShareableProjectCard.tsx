@@ -4,7 +4,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Copy, Download, Share2, X } from "lucide-react";
+import { Copy, Download, Share2, Twitter, X } from "lucide-react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 // ── QR Code SVG (realistic finder-pattern style) ──────────────────
@@ -301,6 +302,7 @@ export interface ShareableProjectCardVisualProps {
   potentialScore: number;
   causeOfDeath: string;
   price?: number;
+  cardRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function ShareableProjectCardVisual({
@@ -308,18 +310,20 @@ export function ShareableProjectCardVisual({
   potentialScore,
   causeOfDeath,
   price,
+  cardRef,
 }: ShareableProjectCardVisualProps) {
   const scorePercent = Math.round(potentialScore * 10);
   const codColors = getCodColors(causeOfDeath);
 
   return (
     <div
+      ref={cardRef}
       style={{
         width: "600px",
         height: "340px",
         position: "relative",
         background:
-          "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,229,255,0.12) 0%, oklch(0.07 0.01 200) 55%)",
+          "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(0,229,255,0.12) 0%, rgb(9, 15, 22) 55%)",
         border: "2px solid #00e5ff",
         borderRadius: "16px",
         boxShadow:
@@ -621,6 +625,10 @@ export function ShareableProjectCard({
   open,
   onOpenChange,
 }: ShareableProjectCardProps) {
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const scorePercent = Math.round(potentialScore * 10);
+
   function handleCopyLink() {
     const url = `https://halfbuilt.com/project/${encodeURIComponent(projectName.toLowerCase().replace(/\s+/g, "-"))}`;
     navigator.clipboard
@@ -629,11 +637,47 @@ export function ShareableProjectCard({
       .catch(() => toast.error("Could not copy link"));
   }
 
-  function handleDownload() {
-    toast.success("Screenshot ready — save from your browser", {
-      description: "Press ⌘+Shift+4 (Mac) or Win+Shift+S (Windows) to capture",
-      duration: 5000,
-    });
+  async function handleDownload() {
+    if (!cardRef.current || isCapturing) return;
+    setIsCapturing(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: null,
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          toast.error("Failed to capture card");
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "halfbuilt-project-card.png";
+        a.click();
+        URL.revokeObjectURL(url);
+        toast.success("Card saved as PNG!");
+      }, "image/png");
+    } catch {
+      toast.error("Download failed. Try screenshotting instead.");
+    } finally {
+      setIsCapturing(false);
+    }
+  }
+
+  function handleTwitterShare() {
+    const tweetText = encodeURIComponent(
+      `My project scored ${scorePercent}% on @HalfBuilt! 🔥`,
+    );
+    const url = encodeURIComponent("https://halfbuilt.com");
+    window.open(
+      `https://twitter.com/intent/tweet?text=${tweetText}&url=${url}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
 
   return (
@@ -704,7 +748,7 @@ export function ShareableProjectCard({
               className="text-sm mt-2"
               style={{ color: "rgba(255,255,255,0.45)" }}
             >
-              Screenshot this card and flex your project on social media.
+              Download as PNG or share your Potential Score on X/Twitter.
             </p>
           </DialogHeader>
 
@@ -733,6 +777,7 @@ export function ShareableProjectCard({
                   potentialScore={potentialScore}
                   causeOfDeath={causeOfDeath}
                   price={price}
+                  cardRef={cardRef}
                 />
               </div>
             </div>
@@ -763,43 +808,61 @@ export function ShareableProjectCard({
               Copy Link
             </button>
 
+            {/* Twitter share */}
+            <button
+              type="button"
+              data-ocid="share_card.twitter.button"
+              onClick={handleTwitterShare}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-150 outline-none focus-visible:ring-2"
+              style={{
+                background: "rgba(29,155,240,0.1)",
+                border: "1px solid rgba(29,155,240,0.35)",
+                color: "rgba(29,155,240,0.9)",
+                fontFamily: "'Geist Mono', monospace",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(29,155,240,0.18)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "rgba(29,155,240,0.1)";
+              }}
+            >
+              <Twitter className="h-3.5 w-3.5" />
+              Post on X
+            </button>
+
             {/* Download Card */}
             <button
               type="button"
               data-ocid="share_card.download.button"
               onClick={handleDownload}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-150 outline-none focus-visible:ring-2"
+              disabled={isCapturing}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-bold transition-all duration-150 outline-none focus-visible:ring-2 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
-                background: "#00e5ff",
+                background: isCapturing ? "rgba(0,229,255,0.6)" : "#00e5ff",
                 border: "1px solid rgba(0,229,255,0.8)",
                 color: "#000",
                 fontFamily: "'Geist Mono', monospace",
                 boxShadow: "0 0 16px rgba(0,229,255,0.35)",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#33eaff";
-                e.currentTarget.style.boxShadow =
-                  "0 0 24px rgba(0,229,255,0.55)";
+                if (!isCapturing) {
+                  e.currentTarget.style.background = "#33eaff";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 24px rgba(0,229,255,0.55)";
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#00e5ff";
-                e.currentTarget.style.boxShadow =
-                  "0 0 16px rgba(0,229,255,0.35)";
+                if (!isCapturing) {
+                  e.currentTarget.style.background = "#00e5ff";
+                  e.currentTarget.style.boxShadow =
+                    "0 0 16px rgba(0,229,255,0.35)";
+                }
               }}
             >
               <Download className="h-3.5 w-3.5" />
-              Download Card
+              {isCapturing ? "Capturing..." : "Download PNG"}
             </button>
-
-            <p
-              className="ml-auto text-xs"
-              style={{
-                color: "rgba(255,255,255,0.3)",
-                fontFamily: "monospace",
-              }}
-            >
-              Screenshot for best results
-            </p>
           </div>
         </div>
       </DialogContent>

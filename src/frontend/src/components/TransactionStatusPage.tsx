@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   Clock,
@@ -11,7 +12,7 @@ import {
   User,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // ── Stage definitions ─────────────────────────────────────────────
 type StageStatus = "completed" | "active" | "future";
@@ -199,6 +200,165 @@ function StageNode({ stage, index }: { stage: Stage; index: number }) {
         </p>
       </div>
     </div>
+  );
+}
+
+// ── Active Stage Card (with countdown + dispute) ──────────────────
+function ActiveStageCard() {
+  // Start countdown from 14h 23m 17s
+  const INITIAL_SECONDS = 14 * 3600 + 23 * 60 + 17;
+  const [secondsLeft, setSecondsLeft] = useState(INITIAL_SECONDS);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeConfirmed, setDisputeConfirmed] = useState(false);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const hours = Math.floor(secondsLeft / 3600);
+  const minutes = Math.floor((secondsLeft % 3600) / 60);
+  const seconds = secondsLeft % 60;
+  const timeStr = `${hours}h ${String(minutes).padStart(2, "0")}m ${String(seconds).padStart(2, "0")}s remaining`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+      className="rounded-xl px-5 py-4 flex flex-col gap-4
+        bg-[oklch(0.62_0.24_285/0.08)] border border-[oklch(0.62_0.24_285/0.25)]
+        relative overflow-hidden"
+    >
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse at 0% 50%, oklch(0.62 0.24 285 / 0.1) 0%, transparent 60%)",
+        }}
+      />
+
+      {/* Main stage info */}
+      <div className="relative z-10 flex items-start gap-4">
+        <div className="w-9 h-9 rounded-xl bg-[oklch(0.62_0.24_285/0.2)] border border-[oklch(0.62_0.24_285/0.4)] flex items-center justify-center flex-shrink-0">
+          <CheckCircle2 className="h-4 w-4 text-[oklch(0.78_0.2_285)]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-mono font-semibold text-[oklch(0.78_0.2_285)] mb-0.5">
+            Current Stage: Repo Transfer
+          </p>
+          <p className="text-xs font-mono text-white/50 leading-relaxed">
+            The seller is adding Alex M. as a repository owner on GitHub.
+            You&apos;ll receive an email invitation to confirm access. Estimated
+            completion: Mar 8, 2026.
+          </p>
+
+          {/* Countdown timer */}
+          <div className="flex items-center gap-1.5 mt-2">
+            <Clock className="h-3 w-3 text-cyan-400/70 flex-shrink-0" />
+            <span className="font-mono text-xs text-cyan-400 tracking-wide">
+              {timeStr}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Dispute button row */}
+      <div className="relative z-10 flex items-center gap-3">
+        <button
+          type="button"
+          data-ocid="transaction.dispute.button"
+          onClick={() => {
+            if (!disputeConfirmed) setDisputeOpen((v) => !v);
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-red-500/30"
+          style={{
+            border: "1px solid rgba(239,68,68,0.4)",
+            color: "rgba(252,165,165,1)",
+            background: "transparent",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "rgba(239,68,68,0.1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+          }}
+        >
+          <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+          Raise a Dispute
+        </button>
+      </div>
+
+      {/* Dispute confirmation panel */}
+      <AnimatePresence>
+        {disputeOpen && !disputeConfirmed && (
+          <motion.div
+            key="dispute-panel"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="relative z-10 overflow-hidden"
+          >
+            <div className="rounded-lg px-4 py-3 border border-red-500/25 bg-red-500/[0.06] flex flex-col gap-3">
+              <p className="text-xs font-mono text-white/60 leading-relaxed">
+                Are you sure you want to raise a dispute? This will pause the
+                transaction and notify HalfBuilt support.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  data-ocid="transaction.dispute.confirm_button"
+                  onClick={() => {
+                    setDisputeConfirmed(true);
+                    setDisputeOpen(false);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all duration-150 outline-none"
+                  style={{
+                    background: "rgba(239,68,68,0.85)",
+                    color: "white",
+                    border: "1px solid rgba(239,68,68,0.6)",
+                  }}
+                >
+                  Confirm Dispute
+                </button>
+                <button
+                  type="button"
+                  data-ocid="transaction.dispute.cancel_button"
+                  onClick={() => setDisputeOpen(false)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-mono text-white/50 hover:text-white/80 transition-colors outline-none"
+                  style={{
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        {disputeConfirmed && (
+          <motion.div
+            key="dispute-success"
+            data-ocid="transaction.dispute.success_state"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            transition={{ duration: 0.3 }}
+            className="relative z-10 overflow-hidden"
+          >
+            <div className="flex items-center gap-2 px-4 py-3 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.06]">
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+              <p className="text-xs font-mono text-emerald-300">
+                Dispute raised. Our team will respond within 2h.
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 
@@ -674,35 +834,7 @@ export function TransactionStatusPage({ onBack }: TransactionStatusPageProps) {
             </motion.section>
 
             {/* Stage detail card — active stage spotlight */}
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
-              className="rounded-xl px-5 py-4 flex items-start gap-4
-                bg-[oklch(0.62_0.24_285/0.08)] border border-[oklch(0.62_0.24_285/0.25)]
-                relative overflow-hidden"
-            >
-              <div
-                className="absolute inset-0 pointer-events-none"
-                style={{
-                  background:
-                    "radial-gradient(ellipse at 0% 50%, oklch(0.62 0.24 285 / 0.1) 0%, transparent 60%)",
-                }}
-              />
-              <div className="relative z-10 w-9 h-9 rounded-xl bg-[oklch(0.62_0.24_285/0.2)] border border-[oklch(0.62_0.24_285/0.4)] flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="h-4 w-4 text-[oklch(0.78_0.2_285)]" />
-              </div>
-              <div className="relative z-10 flex-1">
-                <p className="text-xs font-mono font-semibold text-[oklch(0.78_0.2_285)] mb-0.5">
-                  Current Stage: Repo Transfer
-                </p>
-                <p className="text-xs font-mono text-white/50 leading-relaxed">
-                  The seller is adding Alex M. as a repository owner on GitHub.
-                  You&apos;ll receive an email invitation to confirm access.
-                  Estimated completion: Mar 8, 2026.
-                </p>
-              </div>
-            </motion.div>
+            <ActiveStageCard />
           </div>
 
           {/* RIGHT: Chat panel */}
@@ -729,12 +861,6 @@ export function TransactionStatusPage({ onBack }: TransactionStatusPageProps) {
             <span>Funds are held in escrow until all stages are complete.</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              className="h-8 px-4 text-xs font-mono bg-white/[0.04] border-white/[0.1] text-white/60 hover:text-white/90 hover:bg-white/[0.08] transition-all duration-150"
-            >
-              Raise Dispute
-            </Button>
             <Button
               className="h-8 px-4 text-xs font-mono
                 bg-[oklch(0.62_0.24_285/0.8)] hover:bg-[oklch(0.62_0.24_285)]

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { type Variants, motion } from "motion/react";
+import { useEffect, useState } from "react";
 
 // ── Animation Variants ────────────────────────────────────────────
 const fadeUp: Variants = {
@@ -257,6 +258,79 @@ const ACTIVITY: ActivityItem[] = [
   },
 ];
 
+// ── XP Progress Bar ───────────────────────────────────────────────
+function XpProgressBar() {
+  const currentXp = 4820;
+  const targetXp = 6000;
+  const percentage = (currentXp / targetXp) * 100;
+  const remaining = targetXp - currentXp;
+  const [barWidth, setBarWidth] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setBarWidth(percentage), 200);
+    return () => clearTimeout(timer);
+  }, [percentage]);
+
+  return (
+    <motion.div
+      data-ocid="profile.xp_progress.panel"
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-40px" }}
+      variants={fadeUp}
+      className="mb-14"
+    >
+      <div
+        className="rounded-xl p-5 backdrop-blur-md bg-white/[0.05] border border-white/[0.08]"
+        style={{
+          boxShadow: "0 0 20px oklch(0.82 0.18 70 / 0.2)",
+        }}
+      >
+        {/* Top row: labels */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <span className="font-mono font-black text-sm text-amber-400 tracking-widest uppercase">
+              Level 7
+            </span>
+            <div className="h-px w-8 bg-white/[0.1]" />
+            <span className="font-mono text-sm text-muted-foreground/60 uppercase tracking-widest">
+              Level 8
+            </span>
+          </div>
+          {/* Weekly badge */}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-semibold bg-amber-500/10 border border-amber-500/25 text-amber-300 whitespace-nowrap">
+            🔥 +180 XP this week
+          </span>
+        </div>
+
+        {/* Progress bar */}
+        <div
+          className="w-full rounded-full overflow-hidden mb-2"
+          style={{ height: "10px", background: "rgba(255,255,255,0.06)" }}
+        >
+          <div
+            className="h-full rounded-full transition-all duration-1000 ease-out"
+            style={{
+              width: `${barWidth}%`,
+              background:
+                "linear-gradient(90deg, oklch(0.82 0.18 70), oklch(0.85 0.2 55))",
+              boxShadow: "0 0 8px oklch(0.82 0.18 70 / 0.5)",
+            }}
+          />
+        </div>
+
+        {/* Sub-label */}
+        <p className="font-mono text-xs text-muted-foreground/50">
+          {currentXp.toLocaleString()} / {targetXp.toLocaleString()} XP ·{" "}
+          <span className="text-amber-400/60">
+            {remaining.toLocaleString()} XP to next level
+          </span>
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Props ─────────────────────────────────────────────────────────
 interface BuilderProfilePageProps {
   onBack: () => void;
@@ -431,6 +505,9 @@ export function BuilderProfilePage({ onBack }: BuilderProfilePageProps) {
             })}
           </div>
         </motion.section>
+
+        {/* ── XP Level-Up Progress Bar ─────────────────────── */}
+        <XpProgressBar />
 
         {/* ── Achievements Section ──────────────────────────── */}
         <motion.section
