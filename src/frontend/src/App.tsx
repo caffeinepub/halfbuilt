@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Toaster } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowBigUp,
@@ -26,6 +27,7 @@ import {
   Package,
   Repeat2,
   Search,
+  Share2,
   Shield,
   Twitter,
   X,
@@ -37,6 +39,7 @@ import { useEffect, useRef, useState } from "react";
 import { BuilderProfilePage } from "./components/BuilderProfilePage";
 import { ProjectAutopsyPage } from "./components/ProjectAutopsyPage";
 import { ProjectValuationTool } from "./components/ProjectValuationTool";
+import { ShareableProjectCard } from "./components/ShareableProjectCard";
 import { TransactionStatusPage } from "./components/TransactionStatusPage";
 import { useListProjects } from "./hooks/useQueries";
 import type { Project } from "./hooks/useQueries";
@@ -1143,6 +1146,7 @@ function ProjectCard({ project, index, onViewProject }: ProjectCardProps) {
   const scoreColor = getScoreColor(project.potentialScore);
   const codStyle = getCodColor(project.causeOfDeath);
   const [hovered, setHovered] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   return (
     <motion.article
@@ -1152,6 +1156,25 @@ function ProjectCard({ project, index, onViewProject }: ProjectCardProps) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* Share icon — visible on hover */}
+      <button
+        type="button"
+        data-ocid={`projects.card.share_button.${index + 1}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShareOpen(true);
+        }}
+        aria-label={`Share ${project.name}`}
+        className="absolute top-3 right-3 z-20 w-7 h-7 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-150 outline-none focus-visible:opacity-100 focus-visible:ring-2"
+        style={{
+          background: "rgba(0,229,255,0.08)",
+          border: "1px solid rgba(0,229,255,0.3)",
+          color: "#00e5ff",
+        }}
+      >
+        <Share2 className="h-3.5 w-3.5" />
+      </button>
+
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -1287,6 +1310,16 @@ function ProjectCard({ project, index, onViewProject }: ProjectCardProps) {
             </motion.div>
           )}
       </AnimatePresence>
+
+      {/* Shareable card dialog */}
+      <ShareableProjectCard
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        projectName={project.name}
+        potentialScore={project.potentialScore}
+        causeOfDeath={project.causeOfDeath}
+        price={project.price}
+      />
     </motion.article>
   );
 }
@@ -2383,6 +2416,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         <TransactionStatusPage onBack={() => setView("home")} />
+        <Toaster theme="dark" position="bottom-right" />
       </div>
     );
   }
@@ -2404,6 +2438,7 @@ export default function App() {
           open={submissionOpen}
           onOpenChange={setSubmissionOpen}
         />
+        <Toaster theme="dark" position="bottom-right" />
       </div>
     );
   }
@@ -2416,6 +2451,7 @@ export default function App() {
           project={selectedProject}
           onBack={() => setSelectedProject(null)}
         />
+        <Toaster theme="dark" position="bottom-right" />
       </div>
     );
   }
@@ -2446,6 +2482,17 @@ export default function App() {
       <ProjectSubmissionModal
         open={submissionOpen}
         onOpenChange={setSubmissionOpen}
+      />
+      <Toaster
+        theme="dark"
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: "oklch(0.09 0.008 200)",
+            border: "1px solid rgba(0,229,255,0.2)",
+            color: "white",
+          },
+        }}
       />
     </div>
   );

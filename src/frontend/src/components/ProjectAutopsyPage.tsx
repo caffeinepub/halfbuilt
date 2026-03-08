@@ -6,11 +6,14 @@ import {
   Calendar,
   CheckCircle2,
   ClipboardList,
+  Share2,
   Star,
   Users,
 } from "lucide-react";
 import { type Variants, motion } from "motion/react";
+import { useState } from "react";
 import type { Project } from "../hooks/useQueries";
+import { ShareableProjectCard } from "./ShareableProjectCard";
 
 // ── CoD color helper (mirrors App.tsx) ────────────────────────────
 function getCodColor(cod: string): {
@@ -200,6 +203,7 @@ export function ProjectAutopsyPage({
   const scoreColor = getScoreColor(project.potentialScore);
   const scoreBarColor = getScoreBarColor(project.potentialScore);
   const caseNum = `HB-${String(Number(project.id)).padStart(3, "0")}`;
+  const [shareCardOpen, setShareCardOpen] = useState(false);
 
   return (
     <motion.div
@@ -700,6 +704,32 @@ export function ProjectAutopsyPage({
                 ⚡ Revive This Project for ${project.price.toLocaleString()}
               </motion.button>
 
+              {/* Share / Flex button */}
+              <motion.button
+                type="button"
+                data-ocid="autopsy.share_button"
+                onClick={() => setShareCardOpen(true)}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 px-6 py-3 rounded-xl font-mono font-semibold text-sm transition-all duration-200 cursor-pointer"
+                style={{
+                  border: "1px solid rgba(0,229,255,0.4)",
+                  color: "rgba(0,229,255,0.85)",
+                  background: "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "rgba(0,229,255,0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background =
+                    "transparent";
+                }}
+              >
+                <Share2 className="h-4 w-4" />
+                Share / Flex This Project
+              </motion.button>
+
               <p
                 className="font-mono text-xs tracking-widest text-center"
                 style={{ color: "oklch(0.7 0.15 195 / 0.45)" }}
@@ -707,6 +737,16 @@ export function ProjectAutopsyPage({
                 Secure escrow · Code transfer in 24h · 5% platform fee
               </p>
             </div>
+
+            {/* Shareable card dialog */}
+            <ShareableProjectCard
+              open={shareCardOpen}
+              onOpenChange={setShareCardOpen}
+              projectName={project.name}
+              potentialScore={project.potentialScore}
+              causeOfDeath={project.causeOfDeath}
+              price={project.price}
+            />
           </motion.div>
 
           {/* ── Related / browse more ──────────────────── */}
