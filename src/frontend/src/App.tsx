@@ -39,6 +39,8 @@ import { useEffect, useRef, useState } from "react";
 import { BuilderProfilePage } from "./components/BuilderProfilePage";
 import { ProjectAutopsyPage } from "./components/ProjectAutopsyPage";
 import { ProjectValuationTool } from "./components/ProjectValuationTool";
+import { RepositoryAuditDashboard } from "./components/RepositoryAuditDashboard";
+import { SecurePayoutsPage } from "./components/SecurePayoutsPage";
 import { ShareableProjectCard } from "./components/ShareableProjectCard";
 import { TransactionStatusPage } from "./components/TransactionStatusPage";
 import { useListProjects } from "./hooks/useQueries";
@@ -547,10 +549,12 @@ function Navbar({
   onOpenSubmission,
   onNavigateProfile,
   onNavigateTransaction,
+  onNavigatePayouts,
 }: {
   onOpenSubmission: () => void;
   onNavigateProfile: () => void;
   onNavigateTransaction: () => void;
+  onNavigatePayouts: () => void;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -563,6 +567,7 @@ function Navbar({
 
   const navLinks = [
     { label: "Browse", href: "#projects" },
+    { label: "Audit", href: "#repo-audit" },
     { label: "How It Works", href: "#how-it-works" },
     { label: "List Your Project", href: "#list" },
   ];
@@ -615,6 +620,14 @@ function Navbar({
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-white/5"
           >
             Track
+          </button>
+          <button
+            type="button"
+            data-ocid="payouts.navbar.link"
+            onClick={onNavigatePayouts}
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-white/5"
+          >
+            Payouts
           </button>
         </div>
 
@@ -686,6 +699,17 @@ function Navbar({
                 className="px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-white/5 transition-colors text-left"
               >
                 Track
+              </button>
+              <button
+                type="button"
+                data-ocid="payouts.navbar.link"
+                onClick={() => {
+                  setMobileOpen(false);
+                  onNavigatePayouts();
+                }}
+                className="px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-white/5 transition-colors text-left"
+              >
+                Payouts
               </button>
               <Button
                 data-ocid="navbar.primary_button"
@@ -2514,12 +2538,22 @@ function Footer() {
 }
 
 // ── App ───────────────────────────────────────────────────────────
-type AppView = "home" | "profile" | "transaction";
+type AppView = "home" | "profile" | "transaction" | "payouts";
 
 export default function App() {
   const [submissionOpen, setSubmissionOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [view, setView] = useState<AppView>("home");
+
+  // Payouts view
+  if (view === "payouts") {
+    return (
+      <div className="min-h-screen bg-[#0a0f1e] text-foreground">
+        <SecurePayoutsPage onBack={() => setView("home")} />
+        <Toaster theme="dark" position="bottom-right" />
+      </div>
+    );
+  }
 
   // Transaction view
   if (view === "transaction") {
@@ -2539,6 +2573,7 @@ export default function App() {
           onOpenSubmission={() => setSubmissionOpen(true)}
           onNavigateProfile={() => setView("profile")}
           onNavigateTransaction={() => setView("transaction")}
+          onNavigatePayouts={() => setView("payouts")}
         />
         <main className="pt-16">
           <BuilderProfilePage onBack={() => setView("home")} />
@@ -2573,20 +2608,22 @@ export default function App() {
         onOpenSubmission={() => setSubmissionOpen(true)}
         onNavigateProfile={() => setView("profile")}
         onNavigateTransaction={() => setView("transaction")}
+        onNavigatePayouts={() => setView("payouts")}
       />
       <main>
         <Hero onOpenSubmission={() => setSubmissionOpen(true)} />
-        <WallOfFailureSection />
         <ProjectValuationTool
           onOpenSubmission={() => setSubmissionOpen(true)}
         />
+        <WallOfFailureSection />
+        <RepositoryAuditDashboard />
+        <ListCtaSection />
         <ProjectsSection
           onOpenSubmission={() => setSubmissionOpen(true)}
           onViewProject={(project) => setSelectedProject(project)}
         />
         <HowItWorksSection />
         <ResurrectionSection />
-        <ListCtaSection />
       </main>
       <Footer />
       <ProjectSubmissionModal

@@ -1,38 +1,29 @@
 # HalfBuilt
 
 ## Current State
-The app has a footer (`Footer` component in App.tsx, lines 2287-2404) with:
-- Brand column (logo + tagline + GitHub/Twitter icons)
-- Marketplace column (Browse, List, How It Works, Pricing)
-- Company column (About, Blog, Privacy, Terms)
-- Bottom bar with copyright
+The app is a marketplace for abandoned side projects. It has multiple views managed via an `AppView` type in `App.tsx`: `"home"`, `"profile"`, and `"transaction"`. Navigation happens through the Navbar which has links for Profile and Track. All sub-pages are separate components in `src/frontend/src/components/`.
 
 ## Requested Changes (Diff)
 
 ### Add
-- **Live Platform Stats bar** directly above the bottom copyright bar: three monospace stat chips — "Projects Revived: 0", "Total Value Transferred: $0", "Active Builders: 1" — displayed in a single horizontal row with subtle separator dots between them
-- **Community column** with links: Discord, X (Twitter), Reddit — replacing the old social icons in the brand column
-- **Trust column** with links: Escrow Policy, Code Verification, Privacy
-- A small open-source flavour line in the bottom bar: e.g. "Open-source. Transparent by default." in monospace
+- New `SecurePayoutsPage` component (`src/frontend/src/components/SecurePayoutsPage.tsx`)
+  - **Connect with Stripe** section: prominent CTA button with Stripe branding, connection status indicator
+  - **Fee Structure** transparency section: visual breakdown showing 8% Platform Fee, 2.9% Payment Processing, 89.1% Seller Payout — displayed as a segmented bar and a data table
+  - **Payout History** table: columns for Date, Project Name, and Status with color-coded badges (Pending = yellow, Cleared = cyan, Transferred = green). Sample rows pre-populated.
+  - Design: fintech aesthetic — dark navy background, white/light text, Inter font, clean borders, minimal ornamentation
+- New `"payouts"` entry in `AppView` type in `App.tsx`
+- "Payouts" nav link in Navbar (desktop + mobile)
+- Route handler for the payouts view in `App.tsx`
 
 ### Modify
-- Replace the **Company** column with the new **Trust** column
-- Update the **Marketplace** column to exactly: Browse, Sell, Pricing (simplified, no "How It Works")
-- Remove the standalone GitHub/Twitter icon links from the brand column (moved to Community column)
-- Brand description stays but becomes slightly more terse and builder-centric
-- Grid changes from `md:grid-cols-4` to `md:grid-cols-4` (Brand spans 1, then Marketplace, Trust, Community each span 1)
-- Bottom copyright line: keep caffeine.ai attribution, add "Open-source. Transparent by default." note
+- `App.tsx`: add `"payouts"` to `AppView`, pass `onNavigatePayouts` to Navbar, add payouts view conditional render
+- `Navbar`: add a "Payouts" nav link/button that calls `onNavigatePayouts`
 
 ### Remove
-- Old "Company" column (About, Blog, Terms links)
-- Standalone social icon row in the brand column
+- Nothing removed
 
 ## Implementation Plan
-1. Rewrite the `Footer` component in App.tsx only
-2. Layout: `grid grid-cols-1 md:grid-cols-4` — brand (col-span-1), Marketplace, Trust, Community
-3. Live Platform Stats bar: a `div` above the copyright strip, full-width, with three `span` stat items separated by `·` dots, using `font-mono text-xs` and a faint top border
-4. Community column includes Discord (MessageSquare or custom icon), X (Twitter icon), Reddit (icon or text)
-5. Trust column: Escrow Policy, Code Verification, Privacy — all `href="#"` placeholders
-6. All column headings: `font-mono font-semibold text-xs uppercase tracking-widest text-muted-foreground`
-7. Link hover state: `hover:text-foreground` with no underline, matching existing style
-8. Add deterministic `data-ocid` markers on footer links and stat elements
+1. Create `SecurePayoutsPage.tsx` with all sections (Stripe connect, fee structure, payout history table)
+2. Update `AppView` type in `App.tsx` to include `"payouts"`
+3. Add `onNavigatePayouts` prop to Navbar and wire the nav link
+4. Add route handler in `App.tsx` for the payouts view
