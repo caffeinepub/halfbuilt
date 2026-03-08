@@ -1,43 +1,38 @@
 # HalfBuilt
 
 ## Current State
-Full-stack marketplace app with: Hero, Wall of Failure marquee, Project Graveyard grid (with skeleton placeholders and "Be the first to list" overlay), "How the Resurrection Works" infographic, Project Submission modal, Project Autopsy detail page, Builder Profile dashboard, Project Valuation Tool (sliders + gauge), Graveyard Feed with filtering/sorting and Quick Peek hover overlay, and a Transaction Status page with progress tracker + chat.
+The app has a footer (`Footer` component in App.tsx, lines 2287-2404) with:
+- Brand column (logo + tagline + GitHub/Twitter icons)
+- Marketplace column (Browse, List, How It Works, Pricing)
+- Company column (About, Blog, Privacy, Terms)
+- Bottom bar with copyright
 
 ## Requested Changes (Diff)
 
 ### Add
-- `ShareableProjectCard` component: a standalone, visually premium "Flex card" designed for social media screenshots
-  - Fixed aspect ratio (e.g. 1200×628 or square 1080×1080 feel) — rendered inside a modal/overlay trigger
-  - Large bold project name (display font, prominent)
-  - Glowing "Potential Score" circular badge (e.g. 88%) with neon Electric Cyan (#00FFFF / cyan-400) glow
-  - "Cause of Death" tag pill with appropriate color coding (reuse getCodColor logic)
-  - Footer strip: "Resurrect this on HalfBuilt.com" text + QR code placeholder (SVG grid pattern representing a QR code)
-  - High-contrast dark theme: near-black background, Electric Cyan (`#00e5ff` / `cyan-400`) border glow and accent
-  - Premium trading card aesthetic: subtle gradient sheen, holographic-style inner border, card corner radius
-  - "Copy/Share" button or "Download" trigger visible outside the card frame itself
-- A "Share" button on each Project Card and/or on the Project Autopsy page that opens the Shareable Project Card in a modal overlay
-- The ShareableProjectCard component lives in `src/components/ShareableProjectCard.tsx`
+- **Live Platform Stats bar** directly above the bottom copyright bar: three monospace stat chips — "Projects Revived: 0", "Total Value Transferred: $0", "Active Builders: 1" — displayed in a single horizontal row with subtle separator dots between them
+- **Community column** with links: Discord, X (Twitter), Reddit — replacing the old social icons in the brand column
+- **Trust column** with links: Escrow Policy, Code Verification, Privacy
+- A small open-source flavour line in the bottom bar: e.g. "Open-source. Transparent by default." in monospace
 
 ### Modify
-- Project Autopsy page: add a "Share / Flex this" button that opens the ShareableProjectCard modal for the current project
-- Project cards in the Graveyard feed: optionally surface a share icon/button
+- Replace the **Company** column with the new **Trust** column
+- Update the **Marketplace** column to exactly: Browse, Sell, Pricing (simplified, no "How It Works")
+- Remove the standalone GitHub/Twitter icon links from the brand column (moved to Community column)
+- Brand description stays but becomes slightly more terse and builder-centric
+- Grid changes from `md:grid-cols-4` to `md:grid-cols-4` (Brand spans 1, then Marketplace, Trust, Community each span 1)
+- Bottom copyright line: keep caffeine.ai attribution, add "Open-source. Transparent by default." note
 
 ### Remove
-- Nothing removed
+- Old "Company" column (About, Blog, Terms links)
+- Standalone social icon row in the brand column
 
 ## Implementation Plan
-1. Create `src/components/ShareableProjectCard.tsx`:
-   - Accepts props: `projectName`, `potentialScore` (number 0-100 or 0-10, normalise to %), `causeOfDeath`, `price` (optional)
-   - Renders a fixed-size card (aspect-ratio locked, ~600×340px rendered, scales with CSS) with:
-     - Dark background with subtle radial gradient
-     - Electric Cyan border with box-shadow glow (`0 0 24px #00e5ff, 0 0 60px #00e5ff44`)
-     - HalfBuilt logo/wordmark top-left
-     - Large project name center/left
-     - Glowing circular Potential Score gauge (cyan stroke, dark fill, number inside)
-     - Cause of Death pill tag
-     - Bottom strip: "Resurrect this on HalfBuilt.com" + QR placeholder SVG
-   - A wrapping Dialog/Modal with the card inside and a "Share" / close button
-2. Add `ShareableProjectCardModal` export with open/close state
-3. Wire "Share" trigger button into `ProjectAutopsyPage.tsx`
-4. Wire share icon into project cards in main `App.tsx` feed
-5. Add `data-ocid` markers on all interactive surfaces (share button, modal, close button)
+1. Rewrite the `Footer` component in App.tsx only
+2. Layout: `grid grid-cols-1 md:grid-cols-4` — brand (col-span-1), Marketplace, Trust, Community
+3. Live Platform Stats bar: a `div` above the copyright strip, full-width, with three `span` stat items separated by `·` dots, using `font-mono text-xs` and a faint top border
+4. Community column includes Discord (MessageSquare or custom icon), X (Twitter icon), Reddit (icon or text)
+5. Trust column: Escrow Policy, Code Verification, Privacy — all `href="#"` placeholders
+6. All column headings: `font-mono font-semibold text-xs uppercase tracking-widest text-muted-foreground`
+7. Link hover state: `hover:text-foreground` with no underline, matching existing style
+8. Add deterministic `data-ocid` markers on footer links and stat elements

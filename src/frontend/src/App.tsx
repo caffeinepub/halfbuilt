@@ -2294,10 +2294,11 @@ function Footer() {
       data-ocid="footer.section"
       className="border-t border-[oklch(0.35_0.04_285/0.2)] bg-[oklch(0.07_0.005_280/0.9)]"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-14 pb-0">
+        {/* Four-column grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
-          {/* Brand */}
-          <div className="md:col-span-2">
+          {/* Brand column */}
+          <div className="md:col-span-1">
             <div className="flex items-center gap-2.5 mb-4">
               <img
                 src="/assets/generated/halfbuilt-logo-transparent.dim_80x80.png"
@@ -2308,95 +2309,204 @@ function Footer() {
                 Half<span className="text-violet-400">Built</span>
               </span>
             </div>
-            <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-              The marketplace for abandoned side projects. Every unfinished
-              dream deserves a builder who'll take it to the finish line.
+            <p className="font-mono text-xs text-muted-foreground leading-relaxed">
+              The marketplace for abandoned side projects.{" "}
+              <span className="text-muted-foreground/70">
+                Built for builders, by builders.
+              </span>
             </p>
-            <div className="flex items-center gap-3 mt-5">
-              <a
-                href="https://github.com"
-                className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded hover:bg-white/5"
-                aria-label="GitHub"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Github className="h-4 w-4" />
-              </a>
-              <a
-                href="https://twitter.com"
-                className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded hover:bg-white/5"
-                aria-label="Twitter"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Twitter className="h-4 w-4" />
-              </a>
-            </div>
           </div>
 
-          {/* Links */}
+          {/* Marketplace column */}
           <div>
-            <h4 className="font-mono font-semibold text-xs uppercase tracking-widest text-muted-foreground mb-4">
-              Marketplace
+            <h4 className="font-mono font-semibold text-xs uppercase tracking-widest text-muted-foreground/60 mb-5">
+              MARKETPLACE
             </h4>
-            <ul className="flex flex-col gap-2.5 text-sm">
-              {[
-                { label: "Browse Projects", href: "#projects" },
-                { label: "List a Project", href: "#list" },
-                { label: "How It Works", href: "#how-it-works" },
-                { label: "Pricing", href: "#pricing" },
-              ].map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
+            <ul className="flex flex-col gap-3">
+              <li>
+                <a
+                  data-ocid="footer.marketplace.link.1"
+                  href="#projects"
+                  className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Browse
+                </a>
+              </li>
+              <li>
+                <a
+                  data-ocid="footer.marketplace.link.2"
+                  href="#list"
+                  className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Sell
+                </a>
+              </li>
+              <li>
+                <a
+                  data-ocid="footer.marketplace.link.3"
+                  href="#pricing"
+                  className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Pricing
+                </a>
+              </li>
             </ul>
           </div>
 
+          {/* Trust column */}
           <div>
-            <h4 className="font-mono font-semibold text-xs uppercase tracking-widest text-muted-foreground mb-4">
-              Company
+            <h4 className="font-mono font-semibold text-xs uppercase tracking-widest text-muted-foreground/60 mb-5">
+              TRUST
             </h4>
-            <ul className="flex flex-col gap-2.5 text-sm">
-              {[
-                { label: "About", href: "/about" },
-                { label: "Blog", href: "/blog" },
-                { label: "Privacy Policy", href: "/privacy" },
-                { label: "Terms", href: "/terms" },
-              ].map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
+            <ul className="flex flex-col gap-3">
+              <li>
+                <a
+                  data-ocid="footer.trust.link.1"
+                  href="#trust-escrow"
+                  className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Escrow Policy
+                </a>
+              </li>
+              <li>
+                <a
+                  data-ocid="footer.trust.link.2"
+                  href="#trust-escrow"
+                  className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Code Verification
+                </a>
+              </li>
+              <li>
+                <a
+                  data-ocid="footer.trust.link.3"
+                  href="#trust-escrow"
+                  className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Privacy
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Community column */}
+          <div>
+            <h4 className="font-mono font-semibold text-xs uppercase tracking-widest text-muted-foreground/60 mb-5">
+              COMMUNITY
+            </h4>
+            <ul className="flex flex-col gap-3">
+              <li>
+                <a
+                  data-ocid="footer.community.discord.link"
+                  href="https://discord.gg"
+                  className="flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                  Discord
+                </a>
+              </li>
+              <li>
+                <a
+                  data-ocid="footer.community.x.link"
+                  href="https://x.com"
+                  className="flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Twitter className="h-3.5 w-3.5 shrink-0" />
+                  X&nbsp;
+                  <span className="text-muted-foreground/50">(Twitter)</span>
+                </a>
+              </li>
+              <li>
+                <a
+                  data-ocid="footer.community.reddit.link"
+                  href="https://reddit.com"
+                  className="flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {/* Reddit inline SVG */}
+                  <svg
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-3.5 w-3.5 shrink-0 text-orange-400"
+                    aria-hidden="true"
                   >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
+                    <path d="M10 0C4.478 0 0 4.478 0 10s4.478 10 10 10 10-4.478 10-10S15.522 0 10 0Zm5.863 10.527a1.39 1.39 0 0 1 .55 1.113c0 1.61-1.871 2.916-4.179 2.916s-4.179-1.305-4.179-2.916a1.39 1.39 0 0 1 .55-1.113 1.095 1.095 0 1 1 1.37-1.703 5.39 5.39 0 0 1 2.908-.83l.493-2.315-1.607.336a.77.77 0 1 1-.083-.506l1.796-.375a.196.196 0 0 1 .233.15l.549 2.576a5.392 5.392 0 0 1 2.96.964 1.095 1.095 0 1 1 .639 2.703ZM7.5 11a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Zm4.25.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-.674 1.426c-.328.328-.96.445-1.076.445s-.748-.117-1.076-.445a.197.197 0 0 0-.278.278c.436.436 1.119.566 1.354.566s.918-.13 1.354-.566a.197.197 0 0 0-.278-.278Z" />
+                  </svg>
+                  <span>Reddit</span>
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="pt-8 border-t border-[oklch(0.35_0.04_285/0.15)] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-          <p>
+        {/* Live Platform Stats bar */}
+        <div
+          data-ocid="footer.stats.section"
+          className="border-t border-[oklch(0.35_0.04_285/0.15)] py-4"
+        >
+          <div className="flex flex-wrap items-center justify-center sm:justify-between gap-x-6 gap-y-2">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              {/* Stat 1 */}
+              <span className="font-mono text-xs">
+                <span className="text-muted-foreground/60">
+                  Projects Revived:
+                </span>{" "}
+                <span className="text-foreground/80">0</span>
+              </span>
+              <span className="text-muted-foreground/30 font-mono text-xs select-none">
+                ·
+              </span>
+              {/* Stat 2 */}
+              <span className="font-mono text-xs">
+                <span className="text-muted-foreground/60">
+                  Total Value Transferred:
+                </span>{" "}
+                <span className="text-foreground/80">$0</span>
+              </span>
+              <span className="text-muted-foreground/30 font-mono text-xs select-none">
+                ·
+              </span>
+              {/* Stat 3 — with green pulse dot */}
+              <span className="font-mono text-xs flex items-center gap-1.5">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                </span>
+                <span className="text-muted-foreground/60">
+                  Active Builders:
+                </span>{" "}
+                <span className="text-foreground/80">1</span>
+              </span>
+            </div>
+            <span className="font-mono text-xs text-muted-foreground/40 hidden sm:block">
+              LIVE
+            </span>
+          </div>
+        </div>
+
+        {/* Copyright bottom bar */}
+        <div className="border-t border-[oklch(0.35_0.04_285/0.10)] py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground/50">
+          <p className="font-mono">
             © {year}. Built with{" "}
-            <Heart className="inline h-3 w-3 text-violet-400 fill-violet-400" />{" "}
+            <Heart className="inline h-3 w-3 text-violet-400/70 fill-violet-400/70" />{" "}
             using{" "}
             <a
               href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(hostname)}`}
-              className="hover:text-foreground transition-colors underline underline-offset-2"
+              className="hover:text-foreground/70 transition-colors underline underline-offset-2"
               target="_blank"
               rel="noopener noreferrer"
             >
               caffeine.ai
             </a>
           </p>
-          <p className="font-mono">HalfBuilt v1.0 · All rights reserved</p>
+          <p className="font-mono text-muted-foreground/30">
+            {"// open-source. transparent by default."}
+          </p>
         </div>
       </div>
     </footer>
