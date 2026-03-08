@@ -2,13 +2,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  ArrowBigUp,
   ArrowRight,
   ExternalLink,
   Github,
   Handshake,
   Heart,
   Menu,
+  MessageSquare,
   Package,
+  Repeat2,
   Search,
   Twitter,
   X,
@@ -345,6 +348,335 @@ function Hero() {
   );
 }
 
+// ── Wall of Failure Data ──────────────────────────────────────────
+interface FailurePost {
+  platform: "x" | "reddit";
+  handle: string;
+  displayName: string;
+  avatarInitials: string;
+  timestamp: string;
+  body: string;
+  likes?: number;
+  retweets?: number;
+  upvotes?: number;
+  comments?: number;
+  subreddit?: string;
+}
+
+const FAILURE_POSTS: FailurePost[] = [
+  {
+    platform: "x",
+    handle: "@devfounder",
+    displayName: "Dev Founder",
+    avatarInitials: "DF",
+    timestamp: "2h",
+    body: "I give up on this SaaS. 18 months of work. Deleting the repo tomorrow.",
+    likes: 2847,
+    retweets: 914,
+  },
+  {
+    platform: "reddit",
+    handle: "u/maker_burn",
+    displayName: "maker_burn",
+    avatarInitials: "MB",
+    timestamp: "3 days ago",
+    body: "No time to finish my Chrome Extension. Just sitting there with 847 stars.",
+    upvotes: 4312,
+    comments: 287,
+    subreddit: "r/startups",
+  },
+  {
+    platform: "x",
+    handle: "@indie_grind",
+    displayName: "Indie Grind",
+    avatarInitials: "IG",
+    timestamp: "5h",
+    body: "3k users but 0 revenue. Not sure what I'm doing anymore.",
+    likes: 6201,
+    retweets: 1843,
+  },
+  {
+    platform: "reddit",
+    handle: "u/solo_builder",
+    displayName: "solo_builder",
+    avatarInitials: "SB",
+    timestamp: "1 week ago",
+    body: "Officially abandoning my productivity app. It was going to be the next Notion.",
+    upvotes: 7891,
+    comments: 512,
+    subreddit: "r/entrepreneur",
+  },
+  {
+    platform: "x",
+    handle: "@pixelshipper",
+    displayName: "Pixel Shipper",
+    avatarInitials: "PS",
+    timestamp: "1d",
+    body: "Burned out. My indie game is 90% done and I just... can't.",
+    likes: 12450,
+    retweets: 3201,
+  },
+  {
+    platform: "x",
+    handle: "@saas_wreckage",
+    displayName: "SaaS Wreckage",
+    avatarInitials: "SW",
+    timestamp: "3d",
+    body: "Solo founder life: spent $4k on infra for a product nobody paid for.",
+    likes: 9882,
+    retweets: 2654,
+  },
+  {
+    platform: "reddit",
+    handle: "u/perpetual_wip",
+    displayName: "perpetual_wip",
+    avatarInitials: "PW",
+    timestamp: "2 weeks ago",
+    body: "Posted about my AI writing tool 6 months ago. Still not shipped.",
+    upvotes: 5634,
+    comments: 341,
+    subreddit: "r/SideProject",
+  },
+  {
+    platform: "x",
+    handle: "@twoKids_coder",
+    displayName: "Two Kids Coder",
+    avatarInitials: "TK",
+    timestamp: "6h",
+    body: "My startup idea is great but I ran out of time between my job and two kids.",
+    likes: 18203,
+    retweets: 4971,
+  },
+  {
+    platform: "reddit",
+    handle: "u/waitlist_ghost",
+    displayName: "waitlist_ghost",
+    avatarInitials: "WG",
+    timestamp: "5 days ago",
+    body: "Shutting down the waitlist. 600 signups, 0 launches. I'm sorry.",
+    upvotes: 9142,
+    comments: 623,
+    subreddit: "r/entrepreneur",
+  },
+  {
+    platform: "x",
+    handle: "@repo_graveyard",
+    displayName: "Repo Graveyard",
+    avatarInitials: "RG",
+    timestamp: "12h",
+    body: "The side project graveyard is real. I have 12 repos I'll never finish.",
+    likes: 24601,
+    retweets: 7834,
+  },
+];
+
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+  return n.toString();
+}
+
+function XCard({ post, index }: { post: FailurePost; index: number }) {
+  return (
+    <article
+      data-ocid={`wall_of_failure.item.${index + 1}`}
+      className="w-72 flex-shrink-0 rounded-xl p-4 flex flex-col gap-3
+        backdrop-blur-md bg-white/[0.04] border border-white/[0.08]
+        opacity-60 grayscale-[30%]
+        hover:opacity-75 hover:grayscale-0 transition-all duration-300"
+    >
+      {/* Header */}
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-violet-700/60 to-indigo-800/60 border border-white/10 text-xs font-bold text-white">
+          {post.avatarInitials}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm text-foreground/90 truncate">
+            {post.displayName}
+          </div>
+          <div className="text-xs text-muted-foreground/70 truncate">
+            {post.handle} · {post.timestamp}
+          </div>
+        </div>
+        <X className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0 mt-0.5" />
+      </div>
+
+      {/* Body */}
+      <p className="text-sm text-foreground/80 leading-relaxed">{post.body}</p>
+
+      {/* Footer */}
+      <div className="flex items-center gap-4 text-xs text-muted-foreground/60 pt-1 border-t border-white/[0.06]">
+        <span className="flex items-center gap-1">
+          <Heart className="h-3 w-3" />
+          {formatCount(post.likes ?? 0)}
+        </span>
+        <span className="flex items-center gap-1">
+          <Repeat2 className="h-3 w-3" />
+          {formatCount(post.retweets ?? 0)}
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function RedditCard({ post, index }: { post: FailurePost; index: number }) {
+  return (
+    <article
+      data-ocid={`wall_of_failure.item.${index + 1}`}
+      className="w-72 flex-shrink-0 rounded-xl p-4 flex flex-col gap-3
+        backdrop-blur-md bg-white/[0.04] border border-white/[0.08]
+        opacity-60 grayscale-[30%]
+        hover:opacity-75 hover:grayscale-0 transition-all duration-300"
+    >
+      {/* Subreddit */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-mono font-semibold text-orange-400/80 bg-orange-400/10 border border-orange-400/20 px-2 py-0.5 rounded-full">
+          {post.subreddit}
+        </span>
+        <span className="text-lg">💀</span>
+      </div>
+
+      {/* Author + time */}
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-gradient-to-br from-orange-700/60 to-red-800/60 border border-white/10 text-[10px] font-bold text-white">
+          {post.avatarInitials}
+        </div>
+        <div className="text-xs text-muted-foreground/70">
+          {post.handle} · {post.timestamp}
+        </div>
+      </div>
+
+      {/* Body */}
+      <p className="text-sm text-foreground/80 leading-relaxed">{post.body}</p>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground/60 pt-1 border-t border-white/[0.06]">
+        <span className="flex items-center gap-1">
+          <ArrowBigUp className="h-3.5 w-3.5 text-orange-400/60" />
+          {formatCount(post.upvotes ?? 0)}
+        </span>
+        <span className="flex items-center gap-1">
+          <MessageSquare className="h-3 w-3" />
+          {formatCount(post.comments ?? 0)} comments
+        </span>
+      </div>
+    </article>
+  );
+}
+
+// ── Wall of Failure Section ───────────────────────────────────────
+function WallOfFailureSection() {
+  const doubled = [...FAILURE_POSTS, ...FAILURE_POSTS];
+
+  return (
+    <section
+      id="wall-of-failure"
+      data-ocid="wall_of_failure.section"
+      className="py-24 relative overflow-hidden"
+    >
+      <style>{`
+        @keyframes marquee {
+          from { transform: translateX(0); }
+          to { transform: translateX(-50%); }
+        }
+        .marquee-track {
+          animation: marquee 40s linear infinite;
+        }
+        .marquee-track:hover {
+          animation-play-state: paused;
+        }
+      `}</style>
+
+      {/* Background glow orb */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] rounded-full bg-violet-600/8 blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] rounded-full bg-indigo-500/6 blur-[120px] pointer-events-none" />
+
+      {/* Section heading */}
+      <motion.div
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-80px" }}
+        variants={containerVariants}
+        className="text-center mb-14 px-4"
+      >
+        <motion.div variants={fadeUp} className="mb-5">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-semibold bg-violet-500/10 border border-violet-500/25 text-violet-300">
+            <span className="text-sm">🪦</span>
+            Wall of Failure
+          </span>
+        </motion.div>
+        <motion.h2
+          variants={fadeUp}
+          className="font-display font-black text-3xl sm:text-4xl md:text-5xl text-foreground max-w-3xl mx-auto leading-tight"
+        >
+          The internet is full of{" "}
+          <span className="gradient-text">abandoned gems.</span>
+          <br />
+          <span className="text-foreground/90">We find them.</span>
+        </motion.h2>
+        <motion.p
+          variants={fadeUp}
+          className="text-muted-foreground text-base mt-5 max-w-lg mx-auto"
+        >
+          Real posts from real builders who gave up. Their loss is your
+          opportunity.
+        </motion.p>
+      </motion.div>
+
+      {/* Marquee strip */}
+      <div className="relative">
+        {/* Left fade */}
+        <div className="absolute left-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+        {/* Right fade */}
+        <div className="absolute right-0 top-0 bottom-0 w-24 sm:w-40 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+
+        {/* Scrolling track */}
+        <div className="overflow-hidden">
+          <div className="marquee-track flex gap-4 w-max py-2 px-4">
+            {doubled.map((post, i) => {
+              const originalIndex = i % FAILURE_POSTS.length;
+              if (post.platform === "x") {
+                return (
+                  <XCard
+                    key={`${post.handle}-${i}`}
+                    post={post}
+                    index={originalIndex}
+                  />
+                );
+              }
+              return (
+                <RedditCard
+                  key={`${post.handle}-${i}`}
+                  post={post}
+                  index={originalIndex}
+                />
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom CTA nudge */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+        className="text-center mt-12 px-4"
+      >
+        <p className="text-sm text-muted-foreground">
+          Don&apos;t let yours end up here.{" "}
+          <a
+            href="#list"
+            className="text-violet-400 hover:text-violet-300 transition-colors font-semibold underline underline-offset-2"
+          >
+            List your project free →
+          </a>
+        </p>
+      </motion.div>
+    </section>
+  );
+}
+
 // ── Project Card ──────────────────────────────────────────────────
 interface ProjectCardProps {
   project: Project;
@@ -469,12 +801,164 @@ function ProjectCardSkeleton() {
   );
 }
 
+// ── Graveyard Skeleton Card (3D isometric feel) ───────────────────
+function GraveyardSkeletonCard({ delay = 0 }: { delay?: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut", delay }}
+      style={{ transform: "perspective(600px) rotateX(2deg) rotateY(-3deg)" }}
+      className="relative backdrop-blur-md bg-white/[0.04] border border-white/[0.08] rounded-xl p-5 flex flex-col gap-4 overflow-hidden"
+    >
+      {/* Diagonal isometric grid overlay */}
+      <svg
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full pointer-events-none"
+        style={{ opacity: 0.04 }}
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <pattern
+            id="iso-grid"
+            x="0"
+            y="0"
+            width="24"
+            height="24"
+            patternUnits="userSpaceOnUse"
+            patternTransform="rotate(30)"
+          >
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="24"
+              stroke="white"
+              strokeWidth="0.5"
+            />
+            <line
+              x1="0"
+              y1="0"
+              x2="24"
+              y2="0"
+              stroke="white"
+              strokeWidth="0.5"
+            />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#iso-grid)" />
+      </svg>
+
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-3 relative z-10">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <div className="animate-pulse w-8 h-8 rounded-full bg-white/[0.06] flex-shrink-0" />
+          <div className="animate-pulse h-5 w-40 rounded bg-white/[0.06]" />
+        </div>
+        <div className="animate-pulse h-10 w-12 rounded-lg bg-white/[0.06] flex-shrink-0" />
+      </div>
+
+      {/* Users row */}
+      <div className="flex flex-col gap-1.5 relative z-10">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/40">
+          Users
+        </span>
+        <div className="animate-pulse h-4 w-24 rounded bg-white/[0.06]" />
+      </div>
+
+      {/* Tech Stack row */}
+      <div className="flex flex-col gap-1.5 relative z-10">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/40">
+          Tech Stack
+        </span>
+        <div className="flex gap-1.5">
+          {["a", "b", "c"].map((k) => (
+            <div
+              key={k}
+              className="animate-pulse h-5 w-14 rounded-full bg-white/[0.06]"
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Potential Score row */}
+      <div className="flex flex-col gap-1.5 relative z-10">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground/40">
+          Potential Score
+        </span>
+        <div className="animate-pulse h-2 w-full rounded-full bg-white/[0.06] overflow-hidden">
+          <div
+            className="h-full w-2/3 rounded-full"
+            style={{
+              background:
+                "linear-gradient(90deg, oklch(0.62 0.24 285 / 0.2), oklch(0.62 0.24 285 / 0.4))",
+            }}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Graveyard Empty State ─────────────────────────────────────────
+function GraveyardEmptyState() {
+  return (
+    <div data-ocid="projects.empty_state" className="relative pt-2 pb-8">
+      {/* 3 skeleton cards grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <GraveyardSkeletonCard delay={0} />
+        <GraveyardSkeletonCard delay={0.12} />
+        <GraveyardSkeletonCard delay={0.24} />
+      </div>
+
+      {/* Hero overlay card — floats above the skeleton grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
+        className="mt-[-60px] relative z-10 mx-auto max-w-sm"
+      >
+        <div className="glass-card rounded-2xl p-8 text-center relative overflow-hidden border-violet-500/30 shadow-[0_0_60px_oklch(0.62_0.24_285/0.2)]">
+          {/* Glow orb */}
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-600/15 via-transparent to-indigo-600/15 pointer-events-none rounded-2xl" />
+          {/* Top line accent */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-violet-500/70 to-transparent" />
+
+          <div className="relative z-10">
+            {/* Tombstone */}
+            <div className="text-4xl mb-3">🪦</div>
+
+            <h3 className="font-display font-black text-2xl sm:text-3xl text-foreground mb-2">
+              Be the first to list.
+            </h3>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
+              The graveyard is quiet. Your project deserves better.
+            </p>
+
+            <Button
+              asChild
+              data-ocid="graveyard.primary_button"
+              className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-6 py-3 rounded-lg transition-all duration-200 hover:shadow-[0_0_24px_oklch(0.62_0.24_285/0.4)] w-full sm:w-auto"
+            >
+              <a href="#list">
+                Secure Your Founder Badge
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 // ── Projects Section ──────────────────────────────────────────────
 function ProjectsSection() {
   const { data: projects, isLoading, isError } = useListProjects();
 
-  const displayProjects =
-    projects && projects.length > 0 ? projects : SAMPLE_PROJECTS;
+  const isGraveyard =
+    !isLoading && !isError && (!projects || projects.length === 0);
+  const hasProjects = !isLoading && !isError && projects && projects.length > 0;
 
   return (
     <section
@@ -490,24 +974,40 @@ function ProjectsSection() {
         className="mb-14 text-center"
       >
         <motion.div variants={fadeUp}>
-          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-semibold bg-violet-500/10 border border-violet-500/25 text-violet-300 mb-5">
-            <Package className="h-3 w-3" />
-            Featured Projects
-          </span>
+          {isGraveyard ? (
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-semibold bg-violet-500/10 border border-violet-500/25 text-violet-300 mb-5">
+              <span className="text-sm">🪦</span>
+              Project Graveyard
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-semibold bg-violet-500/10 border border-violet-500/25 text-violet-300 mb-5">
+              <Package className="h-3 w-3" />
+              Featured Projects
+            </span>
+          )}
         </motion.div>
         <motion.h2
           variants={fadeUp}
           className="font-display font-black text-4xl sm:text-5xl text-foreground mb-4"
         >
-          Brilliant projects,{" "}
-          <span className="gradient-text">waiting to ship.</span>
+          {isGraveyard ? (
+            <>
+              Project <span className="gradient-text">Graveyard.</span>
+            </>
+          ) : (
+            <>
+              Brilliant projects,{" "}
+              <span className="gradient-text">waiting to ship.</span>
+            </>
+          )}
         </motion.h2>
         <motion.p
           variants={fadeUp}
           className="text-muted-foreground text-lg max-w-xl mx-auto"
         >
-          Each listing includes a Potential Score, Cause of Death, and full
-          source access.
+          {isGraveyard
+            ? "The next big thing is buried here. Be the first builder to claim it."
+            : "Each listing includes a Potential Score, Cause of Death, and full source access."}
         </motion.p>
       </motion.div>
 
@@ -546,36 +1046,27 @@ function ProjectsSection() {
         </div>
       )}
 
-      {/* Data loaded */}
-      {!isLoading &&
-        !isError &&
-        (displayProjects.length === 0 ? (
-          <div
-            data-ocid="projects.empty_state"
-            className="text-center py-20 glass-card rounded-xl"
-          >
-            <Package className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">
-              No projects listed yet. Be the first!
-            </p>
-          </div>
-        ) : (
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-60px" }}
-            variants={containerVariants}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-          >
-            {displayProjects.map((project, i) => (
-              <ProjectCard
-                key={project.id.toString()}
-                project={project}
-                index={i}
-              />
-            ))}
-          </motion.div>
-        ))}
+      {/* Graveyard empty state */}
+      {isGraveyard && <GraveyardEmptyState />}
+
+      {/* Data loaded — real projects */}
+      {hasProjects && (
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          variants={containerVariants}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+        >
+          {projects.map((project, i) => (
+            <ProjectCard
+              key={project.id.toString()}
+              project={project}
+              index={i}
+            />
+          ))}
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -899,6 +1390,7 @@ export default function App() {
       <Navbar />
       <main>
         <Hero />
+        <WallOfFailureSection />
         <ProjectsSection />
         <HowItWorksSection />
         <ListCtaSection />
