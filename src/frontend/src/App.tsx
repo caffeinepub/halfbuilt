@@ -1,24 +1,38 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowBigUp,
   ArrowRight,
+  CheckCircle2,
   ExternalLink,
   Github,
   Handshake,
   Heart,
+  Loader2,
   Menu,
   MessageSquare,
   Package,
   Repeat2,
   Search,
+  Shield,
   Twitter,
   X,
+  XCircle,
   Zap,
 } from "lucide-react";
 import { AnimatePresence, type Variants, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useListProjects } from "./hooks/useQueries";
 import type { Project } from "./hooks/useQueries";
 
@@ -135,8 +149,375 @@ const SAMPLE_PROJECTS: Project[] = [
   },
 ];
 
+// ── Project Submission Modal ───────────────────────────────────────
+type GitHubVerifyState = "idle" | "verifying" | "verified" | "error";
+type SubmitState = "idle" | "loading" | "success";
+
+interface ProjectSubmissionModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+function ProjectSubmissionModal({
+  open,
+  onOpenChange,
+}: ProjectSubmissionModalProps) {
+  const [projectName, setProjectName] = useState("");
+  const [githubUrl, setGithubUrl] = useState("");
+  const [verifyState, setVerifyState] = useState<GitHubVerifyState>("idle");
+  const [abandonmentReason, setAbandonmentReason] = useState("");
+  const [askingPrice, setAskingPrice] = useState("");
+  const [publicity, setPublicity] = useState<"graveyard" | "private">(
+    "graveyard",
+  );
+  const [submitState, setSubmitState] = useState<SubmitState>("idle");
+  const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timers on unmount or close
+  useEffect(() => {
+    if (!open) {
+      // Reset form state when closed
+      setProjectName("");
+      setGithubUrl("");
+      setVerifyState("idle");
+      setAbandonmentReason("");
+      setAskingPrice("");
+      setPublicity("graveyard");
+      setSubmitState("idle");
+    }
+    return () => {
+      if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
+      if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, [open]);
+
+  function handleVerify() {
+    if (verifyState === "verifying") return;
+    setVerifyState("verifying");
+    verifyTimerRef.current = setTimeout(() => {
+      const isValid =
+        githubUrl.trim().startsWith("https://github.com/") &&
+        githubUrl.trim().length > "https://github.com/".length;
+      setVerifyState(isValid ? "verified" : "error");
+    }, 1500);
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (submitState !== "idle") return;
+    setSubmitState("loading");
+    submitTimerRef.current = setTimeout(() => {
+      setSubmitState("success");
+      closeTimerRef.current = setTimeout(() => {
+        onOpenChange(false);
+      }, 2000);
+    }, 1000);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        data-ocid="submission.modal"
+        className="max-w-[550px] w-full p-0 gap-0 border-[oklch(0.35_0.04_285/0.2)] bg-[oklch(0.09_0.008_280)] backdrop-blur-xl overflow-hidden rounded-2xl"
+        style={{
+          background: "oklch(0.09 0.008 280 / 0.97)",
+        }}
+      >
+        {/* Top accent line */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-px bg-gradient-to-r from-transparent via-violet-500/70 to-transparent pointer-events-none" />
+
+        {/* Ambient glow */}
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/8 via-transparent to-indigo-600/8 pointer-events-none rounded-2xl" />
+
+        {/* Scrollable inner */}
+        <div className="relative overflow-y-auto max-h-[90vh]">
+          {/* Header */}
+          <DialogHeader className="px-7 pt-7 pb-5 border-b border-white/[0.07]">
+            <div className="flex items-start justify-between gap-4 pr-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <DialogTitle className="font-display font-black text-2xl text-foreground leading-tight">
+                    List Your Project
+                  </DialogTitle>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-violet-500/15 border border-violet-500/30 text-violet-300 whitespace-nowrap">
+                    🏅 Founder Badge
+                  </span>
+                </div>
+                <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+                  Get in front of builders ready to take your project to the
+                  next level.
+                </DialogDescription>
+              </div>
+            </div>
+            {/* Custom close button */}
+            <button
+              type="button"
+              data-ocid="submission.close_button"
+              onClick={() => onOpenChange(false)}
+              className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/10 transition-all duration-150 focus-visible:ring-2 focus-visible:ring-violet-500/50 outline-none"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </DialogHeader>
+
+          {/* Form */}
+          <form
+            onSubmit={handleSubmit}
+            className="px-7 py-6 flex flex-col gap-5"
+          >
+            {/* Project Name */}
+            <div className="flex flex-col gap-2">
+              <Label
+                htmlFor="project-name"
+                className="text-xs font-mono font-semibold uppercase tracking-widest text-muted-foreground"
+              >
+                Project Name
+              </Label>
+              <Input
+                id="project-name"
+                data-ocid="submission.project_name.input"
+                type="text"
+                placeholder="e.g. FlowSync"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                required
+                autoComplete="off"
+                className="bg-white/[0.04] border-white/[0.1] text-foreground placeholder:text-muted-foreground/50 focus-visible:border-violet-500/60 focus-visible:ring-1 focus-visible:ring-violet-500/30 h-11 rounded-lg text-sm transition-colors"
+              />
+            </div>
+
+            {/* GitHub Repository URL */}
+            <div className="flex flex-col gap-2">
+              <Label
+                htmlFor="github-url"
+                className="text-xs font-mono font-semibold uppercase tracking-widest text-muted-foreground"
+              >
+                GitHub Repository URL
+              </Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="github-url"
+                    data-ocid="submission.github_url.input"
+                    type="url"
+                    placeholder="https://github.com/you/repo"
+                    value={githubUrl}
+                    onChange={(e) => {
+                      setGithubUrl(e.target.value);
+                      if (verifyState !== "idle") setVerifyState("idle");
+                    }}
+                    required
+                    autoComplete="off"
+                    className="bg-white/[0.04] border-white/[0.1] text-foreground placeholder:text-muted-foreground/50 focus-visible:border-violet-500/60 focus-visible:ring-1 focus-visible:ring-violet-500/30 h-11 rounded-lg text-sm pr-3 transition-colors"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  data-ocid="submission.github_verify.button"
+                  onClick={handleVerify}
+                  disabled={!githubUrl.trim() || verifyState === "verifying"}
+                  className="h-11 px-4 font-semibold text-sm rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.1] text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150 flex-shrink-0"
+                  variant="outline"
+                >
+                  {verifyState === "verifying" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Verify"
+                  )}
+                </Button>
+              </div>
+
+              {/* Verify state feedback */}
+              <AnimatePresence mode="wait">
+                {verifyState === "verified" && (
+                  <motion.div
+                    key="verified"
+                    data-ocid="submission.github.success_state"
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-1.5 text-emerald-400 text-xs font-medium"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+                    Verified
+                  </motion.div>
+                )}
+                {verifyState === "error" && (
+                  <motion.div
+                    key="error"
+                    data-ocid="submission.github.error_state"
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center gap-1.5 text-red-400 text-xs font-medium"
+                  >
+                    <XCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                    Not found. Make sure the URL starts with https://github.com/
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Reason for Abandonment */}
+            <div className="flex flex-col gap-2">
+              <Label
+                htmlFor="abandonment-reason"
+                className="text-xs font-mono font-semibold uppercase tracking-widest text-muted-foreground"
+              >
+                Reason for Abandonment
+              </Label>
+              <Textarea
+                id="abandonment-reason"
+                data-ocid="submission.abandonment_reason.textarea"
+                placeholder="What stopped you from finishing this?"
+                value={abandonmentReason}
+                onChange={(e) => setAbandonmentReason(e.target.value)}
+                required
+                rows={3}
+                className="bg-white/[0.04] border-white/[0.1] text-foreground placeholder:text-muted-foreground/50 focus-visible:border-violet-500/60 focus-visible:ring-1 focus-visible:ring-violet-500/30 rounded-lg text-sm resize-none transition-colors min-h-[88px]"
+              />
+            </div>
+
+            {/* Asking Price */}
+            <div className="flex flex-col gap-2">
+              <Label
+                htmlFor="asking-price"
+                className="text-xs font-mono font-semibold uppercase tracking-widest text-muted-foreground"
+              >
+                Asking Price
+              </Label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/70 text-sm font-mono pointer-events-none select-none">
+                  $
+                </span>
+                <Input
+                  id="asking-price"
+                  data-ocid="submission.asking_price.input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="0"
+                  value={askingPrice}
+                  onChange={(e) => setAskingPrice(e.target.value)}
+                  required
+                  className="bg-white/[0.04] border-white/[0.1] text-foreground placeholder:text-muted-foreground/50 focus-visible:border-violet-500/60 focus-visible:ring-1 focus-visible:ring-violet-500/30 h-11 rounded-lg text-sm pl-8 transition-colors"
+                />
+              </div>
+            </div>
+
+            {/* Publicity Toggle */}
+            <div className="flex flex-col gap-2">
+              <Label className="text-xs font-mono font-semibold uppercase tracking-widest text-muted-foreground">
+                Listing Visibility
+              </Label>
+              <fieldset
+                data-ocid="submission.publicity.toggle"
+                className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.08]"
+              >
+                <button
+                  type="button"
+                  data-ocid="submission.publicity_graveyard.button"
+                  onClick={() => setPublicity("graveyard")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                    publicity === "graveyard"
+                      ? "bg-violet-600/90 text-white shadow-[0_0_16px_oklch(0.62_0.24_285/0.3)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+                  }`}
+                  aria-pressed={publicity === "graveyard"}
+                >
+                  <span className="text-base leading-none">🪦</span>
+                  List on Graveyard
+                </button>
+                <button
+                  type="button"
+                  data-ocid="submission.publicity_private.button"
+                  onClick={() => setPublicity("private")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                    publicity === "private"
+                      ? "bg-violet-600/90 text-white shadow-[0_0_16px_oklch(0.62_0.24_285/0.3)]"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.05]"
+                  }`}
+                  aria-pressed={publicity === "private"}
+                >
+                  <Shield className="h-3.5 w-3.5 flex-shrink-0" />
+                  Private Sale
+                </button>
+              </fieldset>
+            </div>
+
+            {/* Submit / Success state */}
+            <div className="pt-2">
+              <AnimatePresence mode="wait">
+                {submitState === "success" ? (
+                  <motion.div
+                    key="success"
+                    data-ocid="submission.submit.success_state"
+                    initial={{ opacity: 0, scale: 0.96, y: 4 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex items-center gap-3 px-4 py-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-sm font-medium"
+                  >
+                    <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                    <span>
+                      Submitted! We&rsquo;ll review your project within 48
+                      hours.
+                    </span>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="button"
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Button
+                      type="submit"
+                      data-ocid="submission.submit_button"
+                      disabled={submitState === "loading"}
+                      className="w-full h-12 bg-violet-600 hover:bg-violet-500 text-white font-bold text-base rounded-xl transition-all duration-200 hover:shadow-[0_0_24px_oklch(0.62_0.24_285/0.45)] disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {submitState === "loading" ? (
+                        <span
+                          data-ocid="submission.submit.loading_state"
+                          className="flex items-center gap-2"
+                        >
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Submitting…
+                        </span>
+                      ) : (
+                        <>
+                          Submit for Review
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Footer note */}
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground/60 pt-1">
+              <Shield className="h-3 w-3 flex-shrink-0" />
+              <span>
+                Manual review by the HalfBuilt team for quality assurance.
+              </span>
+            </div>
+          </form>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Navbar ─────────────────────────────────────────────────────────
-function Navbar() {
+function Navbar({ onOpenSubmission }: { onOpenSubmission: () => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -190,6 +571,7 @@ function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           <Button
             data-ocid="navbar.primary_button"
+            onClick={onOpenSubmission}
             className="bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm px-4 py-2 rounded-md transition-all duration-200 hover:shadow-[0_0_20px_oklch(0.62_0.24_285/0.4)]"
           >
             Start Selling
@@ -235,6 +617,10 @@ function Navbar() {
               ))}
               <Button
                 data-ocid="navbar.primary_button"
+                onClick={() => {
+                  setMobileOpen(false);
+                  onOpenSubmission();
+                }}
                 className="mt-3 bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm w-full"
               >
                 Start Selling
@@ -248,7 +634,7 @@ function Navbar() {
 }
 
 // ── Hero ──────────────────────────────────────────────────────────
-function Hero() {
+function Hero({ onOpenSubmission }: { onOpenSubmission: () => void }) {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16 noise-overlay">
       {/* Background image */}
@@ -316,12 +702,12 @@ function Hero() {
               </a>
             </Button>
             <Button
-              asChild
               variant="outline"
               data-ocid="hero.secondary_button"
+              onClick={onOpenSubmission}
               className="border-[oklch(0.35_0.04_285/0.4)] bg-white/5 hover:bg-white/10 text-foreground font-semibold text-base px-7 py-6 rounded-lg transition-all duration-200 w-full sm:w-auto"
             >
-              <a href="#list">List Yours Free</a>
+              List Yours Free
             </Button>
           </motion.div>
 
@@ -901,7 +1287,11 @@ function GraveyardSkeletonCard({ delay = 0 }: { delay?: number }) {
 }
 
 // ── Graveyard Empty State ─────────────────────────────────────────
-function GraveyardEmptyState() {
+function GraveyardEmptyState({
+  onOpenSubmission,
+}: {
+  onOpenSubmission: () => void;
+}) {
   return (
     <div data-ocid="projects.empty_state" className="relative pt-2 pb-8">
       {/* 3 skeleton cards grid */}
@@ -936,14 +1326,12 @@ function GraveyardEmptyState() {
             </p>
 
             <Button
-              asChild
               data-ocid="graveyard.primary_button"
+              onClick={onOpenSubmission}
               className="bg-violet-600 hover:bg-violet-500 text-white font-bold px-6 py-3 rounded-lg transition-all duration-200 hover:shadow-[0_0_24px_oklch(0.62_0.24_285/0.4)] w-full sm:w-auto"
             >
-              <a href="#list">
-                Secure Your Founder Badge
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
+              Secure Your Founder Badge
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -953,7 +1341,11 @@ function GraveyardEmptyState() {
 }
 
 // ── Projects Section ──────────────────────────────────────────────
-function ProjectsSection() {
+function ProjectsSection({
+  onOpenSubmission,
+}: {
+  onOpenSubmission: () => void;
+}) {
   const { data: projects, isLoading, isError } = useListProjects();
 
   const isGraveyard =
@@ -1047,7 +1439,9 @@ function ProjectsSection() {
       )}
 
       {/* Graveyard empty state */}
-      {isGraveyard && <GraveyardEmptyState />}
+      {isGraveyard && (
+        <GraveyardEmptyState onOpenSubmission={onOpenSubmission} />
+      )}
 
       {/* Data loaded — real projects */}
       {hasProjects && (
@@ -1199,6 +1593,240 @@ function HowItWorksSection() {
               </motion.div>
             );
           })}
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ── Resurrection / Trust & Escrow Section ────────────────────────
+const resurrectionSteps = [
+  {
+    number: "01",
+    title: "Connect & Verify",
+    description:
+      "Link GitHub and Stripe to prove your project is real. Verified sellers close 3× faster.",
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-8 h-8"
+        aria-hidden="true"
+      >
+        {/* Two interlocked chain links */}
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    ),
+  },
+  {
+    number: "02",
+    title: "Secure Escrow",
+    description:
+      "We hold the buyer's funds until the code is transferred. No risk for either side.",
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-8 h-8"
+        aria-hidden="true"
+      >
+        {/* Shield outline */}
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        {/* Lock body */}
+        <rect x="9" y="11" width="6" height="5" rx="1" />
+        {/* Lock shackle */}
+        <path d="M10 11V9a2 2 0 1 1 4 0v2" />
+      </svg>
+    ),
+  },
+  {
+    number: "03",
+    title: "Handoff",
+    description:
+      "Smooth transfer of GitHub repos, domains, and assets. Keys in hand in under 24 hours.",
+    icon: (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="w-8 h-8"
+        aria-hidden="true"
+      >
+        {/* Source box */}
+        <rect x="2" y="7" width="7" height="7" rx="1" />
+        {/* Destination box */}
+        <rect x="15" y="7" width="7" height="7" rx="1" />
+        {/* Arrow shaft */}
+        <line x1="9" y1="10.5" x2="15" y2="10.5" />
+        {/* Arrow head */}
+        <polyline points="12.5 8 15 10.5 12.5 13" />
+      </svg>
+    ),
+  },
+];
+
+function ResurrectionSection() {
+  return (
+    <section
+      id="trust-escrow"
+      data-ocid="resurrection.section"
+      className="py-24 px-4 sm:px-6 relative overflow-hidden"
+    >
+      {/* Background accent — subtle cyan tint */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background via-cyan-950/5 to-background pointer-events-none" />
+      {/* Ambient glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] rounded-full bg-cyan-500/5 blur-[160px] pointer-events-none" />
+
+      <div className="relative max-w-6xl mx-auto">
+        {/* Section header */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-80px" }}
+          variants={containerVariants}
+          className="text-center mb-16"
+        >
+          <motion.div variants={fadeUp}>
+            <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-semibold bg-violet-500/10 border border-violet-500/25 text-violet-300 mb-5">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                className="h-3 w-3"
+                aria-hidden="true"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              Trust &amp; Escrow
+            </span>
+          </motion.div>
+          <motion.h2
+            variants={fadeUp}
+            className="font-display font-black text-4xl sm:text-5xl text-foreground mb-4"
+          >
+            How the <span className="text-cyan-400">Resurrection</span> Works
+          </motion.h2>
+          <motion.p
+            variants={fadeUp}
+            className="text-muted-foreground text-lg max-w-xl mx-auto"
+          >
+            Every deal is protected — from first handshake to final transfer.
+          </motion.p>
+        </motion.div>
+
+        {/* 3-column step grid */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-60px" }}
+          variants={containerVariants}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 relative"
+        >
+          {/* Circuit board PCB connector — desktop only */}
+          <div
+            aria-hidden="true"
+            className="hidden md:block absolute pointer-events-none"
+            style={{
+              top: "52px",
+              left: "calc(16.67% + 16px)",
+              right: "calc(16.67% + 16px)",
+              height: "2px",
+            }}
+          >
+            <svg
+              width="100%"
+              height="100%"
+              viewBox="0 0 100 2"
+              preserveAspectRatio="none"
+              xmlns="http://www.w3.org/2000/svg"
+              role="img"
+              aria-label="Circuit board connector"
+            >
+              {/* PCB trace line */}
+              <line
+                x1="0"
+                y1="1"
+                x2="100"
+                y2="1"
+                stroke="oklch(0.7 0.15 195 / 0.5)"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+              {/* Node circle at left */}
+              <circle
+                cx="0"
+                cy="1"
+                r="3"
+                fill="oklch(0.7 0.15 195 / 0.7)"
+                vectorEffect="non-scaling-stroke"
+              />
+              {/* Node circle at center */}
+              <circle
+                cx="50"
+                cy="1"
+                r="3"
+                fill="oklch(0.7 0.15 195 / 0.7)"
+                vectorEffect="non-scaling-stroke"
+              />
+              {/* Node circle at right */}
+              <circle
+                cx="100"
+                cy="1"
+                r="3"
+                fill="oklch(0.7 0.15 195 / 0.7)"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+          </div>
+
+          {resurrectionSteps.map((step, i) => (
+            <motion.div
+              key={step.number}
+              variants={itemVariants}
+              data-ocid={`resurrection.item.${i + 1}`}
+              className="glass-card rounded-xl p-7 flex flex-col gap-5 relative group
+                border border-transparent hover:border-cyan-500/20
+                transition-colors duration-300"
+            >
+              {/* Bottom glow on hover */}
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+              {/* Icon */}
+              <div className="w-14 h-14 rounded-xl bg-cyan-400/10 border border-cyan-400/20 flex items-center justify-center text-cyan-400 flex-shrink-0">
+                {step.icon}
+              </div>
+
+              {/* Step number */}
+              <div className="flex items-center gap-4">
+                <span className="font-mono font-black text-3xl text-cyan-400 opacity-30 leading-none">
+                  {step.number}
+                </span>
+              </div>
+
+              {/* Title */}
+              <h3 className="font-display font-black text-xl text-foreground -mt-2">
+                {step.title}
+              </h3>
+
+              {/* Description */}
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {step.description}
+              </p>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </section>
@@ -1385,17 +2013,24 @@ function Footer() {
 
 // ── App ───────────────────────────────────────────────────────────
 export default function App() {
+  const [submissionOpen, setSubmissionOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar />
+      <Navbar onOpenSubmission={() => setSubmissionOpen(true)} />
       <main>
-        <Hero />
+        <Hero onOpenSubmission={() => setSubmissionOpen(true)} />
         <WallOfFailureSection />
-        <ProjectsSection />
+        <ProjectsSection onOpenSubmission={() => setSubmissionOpen(true)} />
         <HowItWorksSection />
+        <ResurrectionSection />
         <ListCtaSection />
       </main>
       <Footer />
+      <ProjectSubmissionModal
+        open={submissionOpen}
+        onOpenChange={setSubmissionOpen}
+      />
     </div>
   );
 }
