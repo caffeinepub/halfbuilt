@@ -16,6 +16,7 @@ import {
   ArrowRight,
   CheckCircle2,
   ExternalLink,
+  Eye,
   Github,
   Handshake,
   Heart,
@@ -35,6 +36,8 @@ import { AnimatePresence, type Variants, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { BuilderProfilePage } from "./components/BuilderProfilePage";
 import { ProjectAutopsyPage } from "./components/ProjectAutopsyPage";
+import { ProjectValuationTool } from "./components/ProjectValuationTool";
+import { TransactionStatusPage } from "./components/TransactionStatusPage";
 import { useListProjects } from "./hooks/useQueries";
 import type { Project } from "./hooks/useQueries";
 
@@ -81,8 +84,14 @@ function getScoreColor(score: number): string {
   return "text-red-300";
 }
 
+// ── Frontend-only augmented project type ──────────────────────────
+interface AugmentedProject extends Project {
+  githubLanguages?: string[];
+  watchers?: number;
+}
+
 // ── Sample data (shown while backend loads or if empty) ────────────
-const SAMPLE_PROJECTS: Project[] = [
+const SAMPLE_PROJECTS: AugmentedProject[] = [
   {
     id: BigInt(1),
     name: "FlowSync",
@@ -93,6 +102,8 @@ const SAMPLE_PROJECTS: Project[] = [
     potentialScore: 9.1,
     price: 2400,
     tags: ["react", "typescript", "crdt", "notion-alternative"],
+    githubLanguages: ["TypeScript", "React", "CSS"],
+    watchers: 284,
   },
   {
     id: BigInt(2),
@@ -104,6 +115,8 @@ const SAMPLE_PROJECTS: Project[] = [
     potentialScore: 8.6,
     price: 3800,
     tags: ["python", "scraping", "saas", "pricing"],
+    githubLanguages: ["Python", "FastAPI", "PostgreSQL"],
+    watchers: 142,
   },
   {
     id: BigInt(3),
@@ -115,6 +128,8 @@ const SAMPLE_PROJECTS: Project[] = [
     potentialScore: 8.8,
     price: 1900,
     tags: ["vscode", "llm", "typescript", "ai"],
+    githubLanguages: ["TypeScript", "Node.js", "WebAssembly"],
+    watchers: 371,
   },
   {
     id: BigInt(4),
@@ -126,6 +141,8 @@ const SAMPLE_PROJECTS: Project[] = [
     potentialScore: 7.4,
     price: 1200,
     tags: ["nextjs", "stripe", "saas", "freelance"],
+    githubLanguages: ["Next.js", "TypeScript", "Prisma"],
+    watchers: 97,
   },
   {
     id: BigInt(5),
@@ -137,6 +154,8 @@ const SAMPLE_PROJECTS: Project[] = [
     potentialScore: 7.9,
     price: 1600,
     tags: ["react", "d3", "dashboard", "embed"],
+    githubLanguages: ["React", "D3.js", "GraphQL"],
+    watchers: 208,
   },
   {
     id: BigInt(6),
@@ -148,6 +167,8 @@ const SAMPLE_PROJECTS: Project[] = [
     potentialScore: 6.8,
     price: 850,
     tags: ["react-native", "mobile", "habits", "wellness"],
+    githubLanguages: ["React Native", "Expo", "SQLite"],
+    watchers: 63,
   },
 ];
 
@@ -522,9 +543,11 @@ function ProjectSubmissionModal({
 function Navbar({
   onOpenSubmission,
   onNavigateProfile,
+  onNavigateTransaction,
 }: {
   onOpenSubmission: () => void;
   onNavigateProfile: () => void;
+  onNavigateTransaction: () => void;
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -581,6 +604,14 @@ function Navbar({
             className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-white/5"
           >
             Profile
+          </button>
+          <button
+            type="button"
+            data-ocid="navbar.transaction.link"
+            onClick={onNavigateTransaction}
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-white/5"
+          >
+            Track
           </button>
         </div>
 
@@ -641,6 +672,17 @@ function Navbar({
                 className="px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-white/5 transition-colors text-left"
               >
                 Profile
+              </button>
+              <button
+                type="button"
+                data-ocid="navbar.transaction.link"
+                onClick={() => {
+                  setMobileOpen(false);
+                  onNavigateTransaction();
+                }}
+                className="px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-white/5 transition-colors text-left"
+              >
+                Track
               </button>
               <Button
                 data-ocid="navbar.primary_button"
@@ -1092,7 +1134,7 @@ function WallOfFailureSection() {
 
 // ── Project Card ──────────────────────────────────────────────────
 interface ProjectCardProps {
-  project: Project;
+  project: AugmentedProject;
   index: number;
   onViewProject?: (project: Project) => void;
 }
@@ -1100,12 +1142,15 @@ interface ProjectCardProps {
 function ProjectCard({ project, index, onViewProject }: ProjectCardProps) {
   const scoreColor = getScoreColor(project.potentialScore);
   const codStyle = getCodColor(project.causeOfDeath);
+  const [hovered, setHovered] = useState(false);
 
   return (
     <motion.article
       variants={itemVariants}
       data-ocid={`projects.item.${index + 1}`}
-      className="glass-card card-lift rounded-xl p-5 flex flex-col gap-4 group cursor-pointer"
+      className="glass-card card-lift rounded-xl p-5 flex flex-col gap-4 group cursor-pointer relative overflow-hidden"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
@@ -1183,6 +1228,65 @@ function ProjectCard({ project, index, onViewProject }: ProjectCardProps) {
           <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
         </Button>
       </div>
+
+      {/* ── Quick Peek Overlay ── */}
+      <AnimatePresence>
+        {hovered &&
+          (project.githubLanguages || project.watchers !== undefined) && (
+            <motion.div
+              key="quickpeek"
+              data-ocid={`projects.card.quickpeek.${index + 1}`}
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+              className="absolute bottom-0 left-0 right-0 backdrop-blur-md bg-black/70 border-t border-violet-500/40 px-4 py-3 flex flex-col gap-2.5 rounded-b-xl"
+            >
+              {/* Languages row */}
+              {project.githubLanguages &&
+                project.githubLanguages.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-violet-400/80 flex-shrink-0 w-20">
+                      Languages
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {project.githubLanguages.map((lang) => (
+                        <span
+                          key={lang}
+                          className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-500/25 text-violet-200"
+                        >
+                          {lang}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {/* Watchers row */}
+              {project.watchers !== undefined && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-[0.15em] text-violet-400/80 flex-shrink-0 w-20">
+                    Watchers
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {/* Live pulse dot */}
+                    <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" />
+                    </span>
+                    <Eye className="h-3 w-3 text-emerald-400/80" />
+                    <span className="font-mono text-xs font-semibold text-emerald-300">
+                      {project.watchers.toLocaleString()}
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground/60">
+                      tracking
+                    </span>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+      </AnimatePresence>
     </motion.article>
   );
 }
@@ -1369,6 +1473,171 @@ function GraveyardEmptyState({
   );
 }
 
+// ── Filter / Sort types ───────────────────────────────────────────
+type FeedFilter = "All" | "SaaS" | "Extensions" | "Mobile" | "Web";
+type FeedSort = "Most Recent" | "Highest Potential" | "Lowest Price";
+
+function matchesFilter(project: AugmentedProject, filter: FeedFilter): boolean {
+  if (filter === "All") return true;
+  const cat = project.category.toLowerCase();
+  const tags = project.tags.map((t) => t.toLowerCase());
+  if (filter === "SaaS") {
+    return cat === "saas" || tags.some((t) => t === "saas");
+  }
+  if (filter === "Extensions") {
+    return (
+      cat.includes("extension") ||
+      cat.includes("developer") ||
+      tags.some((t) => t === "vscode" || t === "extension")
+    );
+  }
+  if (filter === "Mobile") {
+    return (
+      cat.includes("health") ||
+      tags.some((t) => t === "mobile" || t === "react-native")
+    );
+  }
+  if (filter === "Web") {
+    return (
+      cat === "marketplace" ||
+      cat === "data viz" ||
+      cat === "productivity" ||
+      tags.some((t) => ["nextjs", "react", "dashboard"].includes(t))
+    );
+  }
+  return true;
+}
+
+function sortProjects(
+  list: AugmentedProject[],
+  sort: FeedSort,
+): AugmentedProject[] {
+  const copy = [...list];
+  if (sort === "Most Recent") {
+    return copy.sort((a, b) => Number(b.id) - Number(a.id));
+  }
+  if (sort === "Highest Potential") {
+    return copy.sort((a, b) => b.potentialScore - a.potentialScore);
+  }
+  if (sort === "Lowest Price") {
+    return copy.sort((a, b) => a.price - b.price);
+  }
+  return copy;
+}
+
+// ── Filter + Sort Bar ─────────────────────────────────────────────
+const FEED_FILTERS: FeedFilter[] = [
+  "All",
+  "SaaS",
+  "Extensions",
+  "Mobile",
+  "Web",
+];
+const FEED_SORTS: FeedSort[] = [
+  "Most Recent",
+  "Highest Potential",
+  "Lowest Price",
+];
+
+const FILTER_OCID: Record<FeedFilter, string> = {
+  All: "graveyard_feed.filter.all.button",
+  SaaS: "graveyard_feed.filter.saas.button",
+  Extensions: "graveyard_feed.filter.extensions.button",
+  Mobile: "graveyard_feed.filter.mobile.button",
+  Web: "graveyard_feed.filter.web.button",
+};
+
+const SORT_OCID: Record<FeedSort, string> = {
+  "Most Recent": "graveyard_feed.sort.recent.button",
+  "Highest Potential": "graveyard_feed.sort.potential.button",
+  "Lowest Price": "graveyard_feed.sort.price.button",
+};
+
+interface FeedControlsProps {
+  activeFilter: FeedFilter;
+  activeSort: FeedSort;
+  onFilterChange: (f: FeedFilter) => void;
+  onSortChange: (s: FeedSort) => void;
+}
+
+function FeedControls({
+  activeFilter,
+  activeSort,
+  onFilterChange,
+  onSortChange,
+}: FeedControlsProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8"
+    >
+      {/* Filter pills */}
+      <fieldset
+        aria-label="Filter by category"
+        className="flex flex-wrap gap-1.5 border-0 p-0 m-0"
+      >
+        {FEED_FILTERS.map((filter) => {
+          const isActive = activeFilter === filter;
+          return (
+            <button
+              key={filter}
+              type="button"
+              data-ocid={FILTER_OCID[filter]}
+              onClick={() => onFilterChange(filter)}
+              aria-pressed={isActive}
+              className={`
+                px-3 py-1.5 rounded-full text-xs font-mono font-semibold
+                border transition-all duration-150 outline-none
+                focus-visible:ring-2 focus-visible:ring-violet-500/50
+                ${
+                  isActive
+                    ? "bg-violet-600/90 border-violet-500 text-white shadow-[0_0_12px_oklch(0.62_0.24_285/0.35)]"
+                    : "bg-white/[0.04] border-white/[0.1] text-muted-foreground hover:text-foreground hover:bg-white/[0.08] hover:border-violet-500/30"
+                }
+              `}
+            >
+              {filter}
+            </button>
+          );
+        })}
+      </fieldset>
+
+      {/* Sort segmented control */}
+      <fieldset
+        aria-label="Sort projects"
+        className="flex items-center gap-0 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08] m-0"
+      >
+        {FEED_SORTS.map((sort) => {
+          const isActive = activeSort === sort;
+          return (
+            <button
+              key={sort}
+              type="button"
+              data-ocid={SORT_OCID[sort]}
+              onClick={() => onSortChange(sort)}
+              aria-pressed={isActive}
+              className={`
+                px-3 py-1.5 text-[11px] font-mono font-semibold rounded-md
+                transition-all duration-150 outline-none whitespace-nowrap
+                focus-visible:ring-2 focus-visible:ring-violet-500/50
+                ${
+                  isActive
+                    ? "bg-violet-600/80 text-white shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/[0.06]"
+                }
+              `}
+            >
+              {sort}
+            </button>
+          );
+        })}
+      </fieldset>
+    </motion.div>
+  );
+}
+
 // ── Projects Section ──────────────────────────────────────────────
 function ProjectsSection({
   onOpenSubmission,
@@ -1378,10 +1647,29 @@ function ProjectsSection({
   onViewProject: (project: Project) => void;
 }) {
   const { data: projects, isLoading, isError } = useListProjects();
+  const [activeFilter, setActiveFilter] = useState<FeedFilter>("All");
+  const [activeSort, setActiveSort] = useState<FeedSort>("Most Recent");
 
   const isGraveyard =
     !isLoading && !isError && (!projects || projects.length === 0);
   const hasProjects = !isLoading && !isError && projects && projects.length > 0;
+
+  // Build augmented list for real backend projects (no githubLanguages/watchers from backend)
+  const augmentedProjects: AugmentedProject[] = hasProjects
+    ? (projects as AugmentedProject[])
+    : [];
+
+  // Derive filtered + sorted lists
+  const filteredSample = sortProjects(
+    SAMPLE_PROJECTS.filter((p) => matchesFilter(p, activeFilter)),
+    activeSort,
+  );
+  const filteredReal = sortProjects(
+    augmentedProjects.filter((p) => matchesFilter(p, activeFilter)),
+    activeSort,
+  );
+
+  const showFilterBar = !isLoading && !isGraveyard;
 
   return (
     <section
@@ -1404,8 +1692,12 @@ function ProjectsSection({
             </span>
           ) : (
             <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono font-semibold bg-violet-500/10 border border-violet-500/25 text-violet-300 mb-5">
-              <Package className="h-3 w-3" />
-              Featured Projects
+              {/* Live pulse indicator */}
+              <span className="relative flex h-2 w-2 flex-shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_6px_#4ade80]" />
+              </span>
+              Graveyard Feed
             </span>
           )}
         </motion.div>
@@ -1446,26 +1738,41 @@ function ProjectsSection({
         </div>
       )}
 
-      {/* Error state */}
+      {/* Error state — show sample projects with filter/sort */}
       {isError && !isLoading && (
-        <div data-ocid="projects.error_state" className="text-center py-20">
-          <p className="text-muted-foreground text-sm">
+        <div data-ocid="projects.error_state">
+          <p className="text-muted-foreground text-sm text-center mb-6">
             Unable to load projects. Showing sample listings below.
           </p>
+          <FeedControls
+            activeFilter={activeFilter}
+            activeSort={activeSort}
+            onFilterChange={setActiveFilter}
+            onSortChange={setActiveSort}
+          />
           <motion.div
             initial="hidden"
             animate="visible"
             variants={containerVariants}
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-10"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
           >
-            {SAMPLE_PROJECTS.map((project, i) => (
-              <ProjectCard
-                key={project.id.toString()}
-                project={project}
-                index={i}
-                onViewProject={onViewProject}
-              />
-            ))}
+            {filteredSample.length === 0 ? (
+              <div
+                data-ocid="projects.empty_state"
+                className="col-span-full text-center py-16 text-muted-foreground text-sm font-mono"
+              >
+                No projects match this filter.
+              </div>
+            ) : (
+              filteredSample.map((project, i) => (
+                <ProjectCard
+                  key={project.id.toString()}
+                  project={project}
+                  index={i}
+                  onViewProject={onViewProject}
+                />
+              ))
+            )}
           </motion.div>
         </div>
       )}
@@ -1475,24 +1782,43 @@ function ProjectsSection({
         <GraveyardEmptyState onOpenSubmission={onOpenSubmission} />
       )}
 
-      {/* Data loaded — real projects */}
+      {/* Data loaded — real projects with filter/sort */}
       {hasProjects && (
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-60px" }}
-          variants={containerVariants}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
-        >
-          {projects.map((project, i) => (
-            <ProjectCard
-              key={project.id.toString()}
-              project={project}
-              index={i}
-              onViewProject={onViewProject}
+        <>
+          {showFilterBar && (
+            <FeedControls
+              activeFilter={activeFilter}
+              activeSort={activeSort}
+              onFilterChange={setActiveFilter}
+              onSortChange={setActiveSort}
             />
-          ))}
-        </motion.div>
+          )}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-60px" }}
+            variants={containerVariants}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          >
+            {filteredReal.length === 0 ? (
+              <div
+                data-ocid="projects.empty_state"
+                className="col-span-full text-center py-16 text-muted-foreground text-sm font-mono"
+              >
+                No projects match this filter.
+              </div>
+            ) : (
+              filteredReal.map((project, i) => (
+                <ProjectCard
+                  key={project.id.toString()}
+                  project={project}
+                  index={i}
+                  onViewProject={onViewProject}
+                />
+              ))
+            )}
+          </motion.div>
+        </>
       )}
 
       <motion.div
@@ -2045,12 +2371,21 @@ function Footer() {
 }
 
 // ── App ───────────────────────────────────────────────────────────
-type AppView = "home" | "profile";
+type AppView = "home" | "profile" | "transaction";
 
 export default function App() {
   const [submissionOpen, setSubmissionOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [view, setView] = useState<AppView>("home");
+
+  // Transaction view
+  if (view === "transaction") {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <TransactionStatusPage onBack={() => setView("home")} />
+      </div>
+    );
+  }
 
   // Profile view
   if (view === "profile") {
@@ -2059,6 +2394,7 @@ export default function App() {
         <Navbar
           onOpenSubmission={() => setSubmissionOpen(true)}
           onNavigateProfile={() => setView("profile")}
+          onNavigateTransaction={() => setView("transaction")}
         />
         <main className="pt-16">
           <BuilderProfilePage onBack={() => setView("home")} />
@@ -2090,10 +2426,14 @@ export default function App() {
       <Navbar
         onOpenSubmission={() => setSubmissionOpen(true)}
         onNavigateProfile={() => setView("profile")}
+        onNavigateTransaction={() => setView("transaction")}
       />
       <main>
         <Hero onOpenSubmission={() => setSubmissionOpen(true)} />
         <WallOfFailureSection />
+        <ProjectValuationTool
+          onOpenSubmission={() => setSubmissionOpen(true)}
+        />
         <ProjectsSection
           onOpenSubmission={() => setSubmissionOpen(true)}
           onViewProject={(project) => setSelectedProject(project)}
