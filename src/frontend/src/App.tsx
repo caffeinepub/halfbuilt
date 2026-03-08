@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, type Variants, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { BuilderProfilePage } from "./components/BuilderProfilePage";
 import { ProjectAutopsyPage } from "./components/ProjectAutopsyPage";
 import { useListProjects } from "./hooks/useQueries";
 import type { Project } from "./hooks/useQueries";
@@ -518,7 +519,13 @@ function ProjectSubmissionModal({
 }
 
 // ── Navbar ─────────────────────────────────────────────────────────
-function Navbar({ onOpenSubmission }: { onOpenSubmission: () => void }) {
+function Navbar({
+  onOpenSubmission,
+  onNavigateProfile,
+}: {
+  onOpenSubmission: () => void;
+  onNavigateProfile: () => void;
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -567,6 +574,14 @@ function Navbar({ onOpenSubmission }: { onOpenSubmission: () => void }) {
               {link.label}
             </a>
           ))}
+          <button
+            type="button"
+            data-ocid="navbar.profile.link"
+            onClick={onNavigateProfile}
+            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-white/5"
+          >
+            Profile
+          </button>
         </div>
 
         <div className="hidden md:flex items-center gap-3">
@@ -616,6 +631,17 @@ function Navbar({ onOpenSubmission }: { onOpenSubmission: () => void }) {
                   {link.label}
                 </a>
               ))}
+              <button
+                type="button"
+                data-ocid="navbar.profile.link"
+                onClick={() => {
+                  setMobileOpen(false);
+                  onNavigateProfile();
+                }}
+                className="px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground rounded-md hover:bg-white/5 transition-colors text-left"
+              >
+                Profile
+              </button>
               <Button
                 data-ocid="navbar.primary_button"
                 onClick={() => {
@@ -2019,10 +2045,34 @@ function Footer() {
 }
 
 // ── App ───────────────────────────────────────────────────────────
+type AppView = "home" | "profile";
+
 export default function App() {
   const [submissionOpen, setSubmissionOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [view, setView] = useState<AppView>("home");
 
+  // Profile view
+  if (view === "profile") {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <Navbar
+          onOpenSubmission={() => setSubmissionOpen(true)}
+          onNavigateProfile={() => setView("profile")}
+        />
+        <main className="pt-16">
+          <BuilderProfilePage onBack={() => setView("home")} />
+        </main>
+        <Footer />
+        <ProjectSubmissionModal
+          open={submissionOpen}
+          onOpenChange={setSubmissionOpen}
+        />
+      </div>
+    );
+  }
+
+  // Autopsy view
   if (selectedProject) {
     return (
       <div className="min-h-screen bg-background text-foreground">
@@ -2034,9 +2084,13 @@ export default function App() {
     );
   }
 
+  // Home view
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar onOpenSubmission={() => setSubmissionOpen(true)} />
+      <Navbar
+        onOpenSubmission={() => setSubmissionOpen(true)}
+        onNavigateProfile={() => setView("profile")}
+      />
       <main>
         <Hero onOpenSubmission={() => setSubmissionOpen(true)} />
         <WallOfFailureSection />
