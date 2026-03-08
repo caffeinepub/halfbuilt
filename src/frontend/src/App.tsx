@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, type Variants, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { ProjectAutopsyPage } from "./components/ProjectAutopsyPage";
 import { useListProjects } from "./hooks/useQueries";
 import type { Project } from "./hooks/useQueries";
 
@@ -1067,9 +1068,10 @@ function WallOfFailureSection() {
 interface ProjectCardProps {
   project: Project;
   index: number;
+  onViewProject?: (project: Project) => void;
 }
 
-function ProjectCard({ project, index }: ProjectCardProps) {
+function ProjectCard({ project, index, onViewProject }: ProjectCardProps) {
   const scoreColor = getScoreColor(project.potentialScore);
   const codStyle = getCodColor(project.causeOfDeath);
 
@@ -1147,6 +1149,7 @@ function ProjectCard({ project, index }: ProjectCardProps) {
 
         <Button
           data-ocid={`projects.card.button.${index + 1}`}
+          onClick={() => onViewProject?.(project)}
           className="w-full bg-white/8 hover:bg-violet-600/90 border border-white/10 hover:border-violet-500 text-foreground hover:text-white font-semibold text-sm transition-all duration-200 group-hover:bg-violet-600/80 group-hover:border-violet-500 group-hover:text-white"
           variant="outline"
         >
@@ -1343,8 +1346,10 @@ function GraveyardEmptyState({
 // ── Projects Section ──────────────────────────────────────────────
 function ProjectsSection({
   onOpenSubmission,
+  onViewProject,
 }: {
   onOpenSubmission: () => void;
+  onViewProject: (project: Project) => void;
 }) {
   const { data: projects, isLoading, isError } = useListProjects();
 
@@ -1432,6 +1437,7 @@ function ProjectsSection({
                 key={project.id.toString()}
                 project={project}
                 index={i}
+                onViewProject={onViewProject}
               />
             ))}
           </motion.div>
@@ -1457,6 +1463,7 @@ function ProjectsSection({
               key={project.id.toString()}
               project={project}
               index={i}
+              onViewProject={onViewProject}
             />
           ))}
         </motion.div>
@@ -2014,6 +2021,18 @@ function Footer() {
 // ── App ───────────────────────────────────────────────────────────
 export default function App() {
   const [submissionOpen, setSubmissionOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  if (selectedProject) {
+    return (
+      <div className="min-h-screen bg-background text-foreground">
+        <ProjectAutopsyPage
+          project={selectedProject}
+          onBack={() => setSelectedProject(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -2021,7 +2040,10 @@ export default function App() {
       <main>
         <Hero onOpenSubmission={() => setSubmissionOpen(true)} />
         <WallOfFailureSection />
-        <ProjectsSection onOpenSubmission={() => setSubmissionOpen(true)} />
+        <ProjectsSection
+          onOpenSubmission={() => setSubmissionOpen(true)}
+          onViewProject={(project) => setSelectedProject(project)}
+        />
         <HowItWorksSection />
         <ResurrectionSection />
         <ListCtaSection />
