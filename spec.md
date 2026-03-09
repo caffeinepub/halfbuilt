@@ -1,27 +1,21 @@
 # HalfBuilt
 
 ## Current State
-The Repository Audit Dashboard (`RepositoryAuditDashboard.tsx`) exists as a fully-designed UI component with a terminal log animation and a results table. However, all data is completely simulated — `deriveAuditResult()` generates deterministic fake values from a hash of the URL string. No real GitHub API calls are made. The backend has no GitHub integration.
+The project submission form collects name, GitHub URL, abandonment reason, asking price, and visibility toggle. On submit it calls `submitProject` on the backend, which only decrements a founder-spots counter and returns the remaining count. The submitted project is never stored in `projectStore`, so it never appears in the Graveyard Feed. The frontend's `useSubmitProject` hook also does not invalidate the `projects` query after a successful submission.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Backend: `auditRepository(url: Text) : async AuditResult` — an update call that uses IC HTTP outcalls to fetch real data from the GitHub REST API (`https://api.github.com/repos/{owner}/{repo}`) and returns a structured result with `lastCommitDate`, `primaryLanguage`, `openIssues`, `stars`, `license`, and `forks`.
-- Backend: `AuditResult` type with all returned fields.
-- Backend: HTTP outcall using `ExperimentalInternetComputer` to call the GitHub API (public, unauthenticated, rate-limited to 60 req/hr).
-- Frontend: Replace `deriveAuditResult()` simulation with a real call to `backend.auditRepository(url)`.
-- Frontend: Show an error state if the GitHub API call fails (repo not found, private repo, rate limit hit).
-- Frontend: Add a `forks` row to the results table.
+- Nothing new — this is a bug fix to existing wiring.
 
 ### Modify
-- Backend `main.mo`: Add `auditRepository` function using HTTP outcalls.
-- Frontend `RepositoryAuditDashboard.tsx`: Replace simulated `deriveAuditResult` logic with a backend call; handle loading, success, and error states using the real response.
+- **Backend `submitProject`**: Persist the submitted project in `projectStore` with a new auto-incremented ID. Derive `potentialScore` (simple heuristic from price), `causeOfDeath` from `abandonmentReason` (short label), `category` from `githubUrl` (default "SaaS"), and `tags` from the project name words. Only store public projects (`isPublic = true`) in the feed; private ones still decrement the counter but are not listed.
+- **Frontend `useSubmitProject`**: Invalidate the `["projects"]` query on success so `useListProjects` refetches and the Graveyard Feed updates in real time.
 
 ### Remove
-- Frontend: Remove all simulated fake-data helpers (`simpleHash`, `deriveAuditResult`, `COMMIT_DATES`, `LICENSES` arrays).
+- Nothing.
 
 ## Implementation Plan
-1. Select `http-outcalls` component.
-2. Regenerate Motoko backend with `auditRepository` HTTP outcall to GitHub API, parsing `stargazers_count`, `open_issues_count`, `language`, `license.spdx_id`, `forks_count`, and `pushed_at` from the JSON response.
-3. Update `RepositoryAuditDashboard.tsx` to call `backend.auditRepository(url)`, display real results, and show an inline error message for failures (invalid URL, private repo, API error).
-4. Validate and deploy.
+1. Rewrite `submitProject` in `main.mo` to build a `Project` record and call `projectStore.add(...)` before returning.
+2. Add a `nextId` counter variable to generate stable IDs.
+3. In `useQueries.ts`, add `queryClient.invalidateQueries({ queryKey: ["projects"] })` inside `onSuccess` of `useSubmitProject`.

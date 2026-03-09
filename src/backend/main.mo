@@ -1,13 +1,15 @@
 import Map "mo:core/Map";
 import Array "mo:core/Array";
+import Nat "mo:core/Nat";
+import Text "mo:core/Text";
 import Order "mo:core/Order";
 import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
-import Nat "mo:core/Nat";
 import Float "mo:core/Float";
+import Char "mo:core/Char";
+import Migration "migration";
 
-
-
+(with migration = Migration.run)
 actor {
   type Project = {
     id : Nat;
@@ -26,12 +28,13 @@ actor {
     };
   };
 
-  let projectStore = Map.empty<Nat, Project>();
+  type ProjectStore = Map.Map<Nat, Project>;
+  let projectStore : ProjectStore = Map.empty<Nat, Project>();
 
+  var currentId = 100;
   var submissionCount = 0;
   let totalFounderSpots = 100;
 
-  // Store initial projects
   let initialProjects = [
     {
       id = 1;
@@ -95,6 +98,7 @@ actor {
     },
   ];
 
+  // Add initial projects to projectStore
   for (project in initialProjects.values()) {
     projectStore.add(project.id, project);
   };
@@ -128,6 +132,25 @@ actor {
     if (submissionCount >= totalFounderSpots) {
       Runtime.trap("No more spots available");
     };
+
+    let potentialScore = clamp(askingPrice / 100.0, 0.0, 10.0);
+    let causeOfDeath = abandonTrim(abandonmentReason, 30);
+
+    if (isPublic) {
+      let project : Project = {
+        id = currentId;
+        name;
+        description = abandonmentReason;
+        potentialScore;
+        causeOfDeath;
+        price = askingPrice;
+        category = "SaaS";
+        tags = [];
+      };
+      projectStore.add(currentId, project);
+    };
+
+    currentId += 1;
     submissionCount += 1;
     totalFounderSpots - submissionCount;
   };
@@ -143,6 +166,19 @@ actor {
       discord = "https://discord.gg/halfbuilt";
       x = "https://x.com/halfbuilt";
       reddit = "https://reddit.com/r/halfbuilt";
+    };
+  };
+
+  func clamp(x : Float, lower : Float, upper : Float) : Float {
+    if (x < lower) { lower } else if (x > upper) { upper } else { x };
+  };
+
+  func abandonTrim(str : Text, maxLength : Nat) : Text {
+    let chars = str.toArray();
+    if (chars.size() <= maxLength) {
+      str;
+    } else {
+      Text.fromIter(chars.sliceToArray(0, maxLength).values());
     };
   };
 };

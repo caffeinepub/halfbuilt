@@ -87,6 +87,7 @@ export function useSubmitProject() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["founderSpots"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
     },
   });
 }
