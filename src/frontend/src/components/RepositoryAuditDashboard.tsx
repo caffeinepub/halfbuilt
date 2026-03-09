@@ -5,7 +5,7 @@ import { AnimatePresence, type Variants, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 // ── Types ──────────────────────────────────────────────────────────
-type AuditState = "idle" | "scanning" | "result";
+type AuditState = "idle" | "scanning" | "result" | "error";
 
 // ── Scanning Log Lines ─────────────────────────────────────────────
 const LOG_LINES = [
@@ -19,96 +19,90 @@ const LOG_LINES = [
   "> Compiling audit report...",
 ];
 
-// ── Deterministic "hash" from a string ────────────────────────────
-function simpleHash(str: string): number {
-  let h = 5381;
-  for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) + h) ^ str.charCodeAt(i);
-  }
-  return Math.abs(h);
-}
-
-// ── Derive plausible audit results from a URL string ──────────────
+// ── AuditResult interface ──────────────────────────────────────────
 interface AuditResult {
-  lastCommit: string;
+  repoName: string;
+  description: string;
+  lastCommitDate: string; // ISO 8601 date string from pushed_at
   primaryLanguage: string;
   openIssues: number;
   stars: number;
+  forks: number;
   license: string;
 }
 
-const COMMIT_DATES = [
-  "2 hours ago",
-  "1 day ago",
-  "2 days ago",
-  "4 days ago",
-  "1 week ago",
-  "2 weeks ago",
-  "3 weeks ago",
-  "1 month ago",
-  "6 weeks ago",
-  "3 months ago",
-  "5 months ago",
-  "8 months ago",
-];
+// ── timeAgo helper ─────────────────────────────────────────────────
+function timeAgo(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const diffSecs = Math.floor(diffMs / 1000);
+  if (diffSecs < 60) return "just now";
+  const diffMins = Math.floor(diffSecs / 60);
+  if (diffMins < 60)
+    return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12)
+    return `${diffMonths} month${diffMonths !== 1 ? "s" : ""} ago`;
+  const diffYears = Math.floor(diffMonths / 12);
+  return `${diffYears} year${diffYears !== 1 ? "s" : ""} ago`;
+}
 
-const LICENSES = [
-  "MIT",
-  "Apache-2.0",
-  "GPL-3.0",
-  "BSD-3-Clause",
-  "MIT",
-  "MIT",
-  "Apache-2.0",
-];
+// ── Real GitHub API fetch ──────────────────────────────────────────
+async function fetchGitHubRepo(
+  url: string,
+): Promise<{ ok: AuditResult } | { err: string }> {
+  const match = url.match(/github\.com\/([^/]+)\/([^/?#]+)/);
+  if (!match)
+    return {
+      err: "Invalid GitHub URL. Use format: https://github.com/owner/repo",
+    };
+  const owner = match[1];
+  const repo = match[2].replace(/\.git$/, "");
 
-function deriveAuditResult(url: string): AuditResult {
-  const lower = url.toLowerCase();
-  const hash = simpleHash(url);
-
-  // Language heuristic
-  let primaryLanguage = "TypeScript";
-  if (
-    lower.includes("py") ||
-    lower.includes("flask") ||
-    lower.includes("django")
-  ) {
-    primaryLanguage = "Python";
-  } else if (
-    lower.includes("go") &&
-    !lower.includes("good") &&
-    !lower.includes("google")
-  ) {
-    primaryLanguage = "Go";
-  } else if (lower.includes("rust")) {
-    primaryLanguage = "Rust";
-  } else if (lower.includes("java") && !lower.includes("javascript")) {
-    primaryLanguage = "Java";
-  } else if (
-    lower.includes("react") ||
-    lower.includes("next") ||
-    lower.includes("ts")
-  ) {
-    primaryLanguage = "TypeScript";
-  } else if (lower.includes("vue") || lower.includes("nuxt")) {
-    primaryLanguage = "Vue";
-  } else if (lower.includes("swift") || lower.includes("ios")) {
-    primaryLanguage = "Swift";
+  const apiUrl = `https://api.github.com/repos/${owner}/${repo}`;
+  let response: Response;
+  try {
+    response = await fetch(apiUrl, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+  } catch {
+    return { err: "Network error: could not reach GitHub API." };
   }
 
-  // Open issues: 3–47 based on URL length
-  const openIssues = 3 + (url.length % 45);
+  if (response.status === 404)
+    return { err: "Repository not found or is private." };
+  if (response.status === 403)
+    return {
+      err: "GitHub API rate limit exceeded. Try again in a minute.",
+    };
+  if (!response.ok) return { err: `GitHub API error: HTTP ${response.status}` };
 
-  // Last commit date: pick from array
-  const lastCommit = COMMIT_DATES[hash % COMMIT_DATES.length];
-
-  // Stars: 40–12000
-  const stars = 40 + (hash % 11961);
-
-  // License
-  const license = LICENSES[hash % LICENSES.length];
-
-  return { lastCommit, primaryLanguage, openIssues, stars, license };
+  const data = await response.json();
+  return {
+    ok: {
+      repoName: data.name ?? repo,
+      description: data.description || "No description provided.",
+      lastCommitDate: data.pushed_at ?? "Unknown",
+      primaryLanguage: data.language ?? "Unknown",
+      openIssues: data.open_issues_count ?? 0,
+      stars: data.stargazers_count ?? 0,
+      forks: data.forks_count ?? 0,
+      license:
+        data.license?.spdx_id && data.license.spdx_id !== "NOASSERTION"
+          ? data.license.spdx_id
+          : (data.license?.name ?? "None"),
+    },
+  };
 }
 
 // ── Motion variants ────────────────────────────────────────────────
@@ -145,6 +139,7 @@ export function RepositoryAuditDashboard() {
   const [visibleLines, setVisibleLines] = useState<number>(0);
   const [auditResult, setAuditResult] = useState<AuditResult | null>(null);
   const [auditedUrl, setAuditedUrl] = useState("");
+  const [auditError, setAuditError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const logPanelRef = useRef<HTMLDivElement>(null);
@@ -165,7 +160,7 @@ export function RepositoryAuditDashboard() {
     }
   }, [visibleLines]);
 
-  function handleStartAudit() {
+  async function handleStartAudit() {
     if (!urlValue.trim() || auditState === "scanning") return;
 
     const targetUrl = urlValue.trim();
@@ -173,20 +168,38 @@ export function RepositoryAuditDashboard() {
     setAuditState("scanning");
     setVisibleLines(0);
     setAuditResult(null);
+    setAuditError(null);
 
-    let currentLine = 0;
-    intervalRef.current = setInterval(() => {
-      currentLine += 1;
-      setVisibleLines(currentLine);
+    // Start the fetch in parallel with the log animation
+    const fetchPromise = fetchGitHubRepo(targetUrl);
 
-      if (currentLine >= LOG_LINES.length) {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        completeTimerRef.current = setTimeout(() => {
-          setAuditResult(deriveAuditResult(targetUrl));
-          setAuditState("result");
-        }, 600);
-      }
-    }, 450);
+    // Log line streaming animation
+    const logFinishedPromise = new Promise<void>((resolve) => {
+      let currentLine = 0;
+      intervalRef.current = setInterval(() => {
+        currentLine += 1;
+        setVisibleLines(currentLine);
+
+        if (currentLine >= LOG_LINES.length) {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          // Small pause after last log line before resolving
+          completeTimerRef.current = setTimeout(() => {
+            resolve();
+          }, 600);
+        }
+      }, 450);
+    });
+
+    // Wait for both log animation AND fetch to complete
+    const [fetchResult] = await Promise.all([fetchPromise, logFinishedPromise]);
+
+    if ("err" in fetchResult) {
+      setAuditError(fetchResult.err);
+      setAuditState("error");
+    } else {
+      setAuditResult(fetchResult.ok);
+      setAuditState("result");
+    }
   }
 
   function handleReset() {
@@ -197,17 +210,25 @@ export function RepositoryAuditDashboard() {
     setAuditResult(null);
     setAuditedUrl("");
     setUrlValue("");
+    setAuditError(null);
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
-      handleStartAudit();
+      void handleStartAudit();
     }
   }
 
   const isScanning = auditState === "scanning";
   const isResult = auditState === "result";
-  const showTerminal = isScanning || isResult;
+  const isError = auditState === "error";
+  const showTerminal = isScanning || isResult || isError;
+
+  // Truncate description at 80 chars
+  function truncateDesc(desc: string): string {
+    if (desc.length <= 80) return desc;
+    return `${desc.slice(0, 80)}…`;
+  }
 
   return (
     <section
@@ -280,14 +301,17 @@ export function RepositoryAuditDashboard() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-40px" }}
           transition={{ duration: 0.45, ease: "easeOut", delay: 0.1 }}
-          className="flex gap-3 mb-6"
+          className="flex gap-3 mb-3"
         >
           <Input
             data-ocid="repo_audit.url.input"
             type="url"
             placeholder="https://github.com/owner/repo"
             value={urlValue}
-            onChange={(e) => setUrlValue(e.target.value)}
+            onChange={(e) => {
+              setUrlValue(e.target.value);
+              if (auditError) setAuditError(null);
+            }}
             onKeyDown={handleKeyDown}
             disabled={isScanning}
             autoComplete="off"
@@ -297,7 +321,7 @@ export function RepositoryAuditDashboard() {
           />
           <Button
             data-ocid="repo_audit.start_button"
-            onClick={handleStartAudit}
+            onClick={() => void handleStartAudit()}
             disabled={!urlValue.trim() || isScanning}
             className="h-12 px-6 font-bold text-sm rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
             style={{
@@ -330,6 +354,36 @@ export function RepositoryAuditDashboard() {
             )}
           </Button>
         </motion.div>
+
+        {/* ── Error State ── */}
+        <AnimatePresence>
+          {auditError && (
+            <motion.div
+              key="error"
+              data-ocid="repo_audit.error_state"
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="mb-4 px-4 py-2.5 rounded-lg flex items-center gap-2"
+              style={{
+                background: "oklch(0.35 0.15 25 / 0.15)",
+                border: "1px solid oklch(0.55 0.18 25 / 0.35)",
+                fontFamily: "'JetBrains Mono', 'Geist Mono', monospace",
+              }}
+            >
+              <span
+                className="text-xs flex-shrink-0"
+                style={{ color: "oklch(0.75 0.18 25)" }}
+              >
+                ✗
+              </span>
+              <p className="text-xs" style={{ color: "oklch(0.72 0.12 25)" }}>
+                {auditError}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Terminal Log Panel ── */}
         <AnimatePresence>
@@ -488,8 +542,18 @@ export function RepositoryAuditDashboard() {
                   <tbody>
                     {[
                       {
-                        label: "Last Commit",
-                        value: auditResult.lastCommit,
+                        label: "Repo Name",
+                        value: auditResult.repoName,
+                        highlight: false,
+                      },
+                      {
+                        label: "Description",
+                        value: truncateDesc(auditResult.description),
+                        highlight: false,
+                      },
+                      {
+                        label: "Last Push",
+                        value: timeAgo(auditResult.lastCommitDate),
                         highlight: false,
                       },
                       {
@@ -506,6 +570,11 @@ export function RepositoryAuditDashboard() {
                         label: "GitHub Stars",
                         value: auditResult.stars.toLocaleString(),
                         highlight: true,
+                      },
+                      {
+                        label: "Forks",
+                        value: auditResult.forks.toLocaleString(),
+                        highlight: false,
                       },
                       {
                         label: "License",

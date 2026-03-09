@@ -17,7 +17,15 @@ export interface Project {
     potentialScore: number;
     price: number;
 }
+export interface CommunityLinks {
+    x: string;
+    discord: string;
+    reddit: string;
+}
 export interface backendInterface {
+    getCommunityLinks(): Promise<CommunityLinks>;
+    getFounderSpotsRemaining(): Promise<bigint>;
     getProject(id: bigint): Promise<Project>;
     listProjects(): Promise<Array<Project>>;
+    submitProject(name: string, githubUrl: string, abandonmentReason: string, askingPrice: number, isPublic: boolean): Promise<bigint>;
 }

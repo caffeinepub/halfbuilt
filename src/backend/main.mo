@@ -4,6 +4,9 @@ import Order "mo:core/Order";
 import Runtime "mo:core/Runtime";
 import Iter "mo:core/Iter";
 import Nat "mo:core/Nat";
+import Float "mo:core/Float";
+
+
 
 actor {
   type Project = {
@@ -25,7 +28,10 @@ actor {
 
   let projectStore = Map.empty<Nat, Project>();
 
-  // Seed with initial data
+  var submissionCount = 0;
+  let totalFounderSpots = 100;
+
+  // Store initial projects
   let initialProjects = [
     {
       id = 1;
@@ -89,7 +95,6 @@ actor {
     },
   ];
 
-  // Store initial projects
   for (project in initialProjects.values()) {
     projectStore.add(project.id, project);
   };
@@ -102,6 +107,42 @@ actor {
     switch (projectStore.get(id)) {
       case (null) { Runtime.trap("Project does not exist") };
       case (?project) { project };
+    };
+  };
+
+  public query ({ caller }) func getFounderSpotsRemaining() : async Nat {
+    if (submissionCount >= totalFounderSpots) {
+      0;
+    } else {
+      totalFounderSpots - submissionCount;
+    };
+  };
+
+  public shared ({ caller }) func submitProject(
+    name : Text,
+    githubUrl : Text,
+    abandonmentReason : Text,
+    askingPrice : Float,
+    isPublic : Bool,
+  ) : async Nat {
+    if (submissionCount >= totalFounderSpots) {
+      Runtime.trap("No more spots available");
+    };
+    submissionCount += 1;
+    totalFounderSpots - submissionCount;
+  };
+
+  public type CommunityLinks = {
+    discord : Text;
+    x : Text;
+    reddit : Text;
+  };
+
+  public query ({ caller }) func getCommunityLinks() : async CommunityLinks {
+    {
+      discord = "https://discord.gg/halfbuilt";
+      x = "https://x.com/halfbuilt";
+      reddit = "https://reddit.com/r/halfbuilt";
     };
   };
 };

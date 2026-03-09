@@ -10,6 +10,11 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface CommunityLinks {
+  'x' : string,
+  'discord' : string,
+  'reddit' : string,
+}
 export interface Project {
   'id' : bigint,
   'name' : string,
@@ -21,8 +26,14 @@ export interface Project {
   'price' : number,
 }
 export interface _SERVICE {
+  'getCommunityLinks' : ActorMethod<[], CommunityLinks>,
+  'getFounderSpotsRemaining' : ActorMethod<[], bigint>,
   'getProject' : ActorMethod<[bigint], Project>,
   'listProjects' : ActorMethod<[], Array<Project>>,
+  'submitProject' : ActorMethod<
+    [string, string, string, number, boolean],
+    bigint
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

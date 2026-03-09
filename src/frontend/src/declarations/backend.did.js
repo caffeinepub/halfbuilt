@@ -8,6 +8,11 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const CommunityLinks = IDL.Record({
+  'x' : IDL.Text,
+  'discord' : IDL.Text,
+  'reddit' : IDL.Text,
+});
 export const Project = IDL.Record({
   'id' : IDL.Nat,
   'name' : IDL.Text,
@@ -20,13 +25,25 @@ export const Project = IDL.Record({
 });
 
 export const idlService = IDL.Service({
+  'getCommunityLinks' : IDL.Func([], [CommunityLinks], ['query']),
+  'getFounderSpotsRemaining' : IDL.Func([], [IDL.Nat], ['query']),
   'getProject' : IDL.Func([IDL.Nat], [Project], ['query']),
   'listProjects' : IDL.Func([], [IDL.Vec(Project)], ['query']),
+  'submitProject' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Float64, IDL.Bool],
+      [IDL.Nat],
+      [],
+    ),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const CommunityLinks = IDL.Record({
+    'x' : IDL.Text,
+    'discord' : IDL.Text,
+    'reddit' : IDL.Text,
+  });
   const Project = IDL.Record({
     'id' : IDL.Nat,
     'name' : IDL.Text,
@@ -39,8 +56,15 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
+    'getCommunityLinks' : IDL.Func([], [CommunityLinks], ['query']),
+    'getFounderSpotsRemaining' : IDL.Func([], [IDL.Nat], ['query']),
     'getProject' : IDL.Func([IDL.Nat], [Project], ['query']),
     'listProjects' : IDL.Func([], [IDL.Vec(Project)], ['query']),
+    'submitProject' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Float64, IDL.Bool],
+        [IDL.Nat],
+        [],
+      ),
   });
 };
 

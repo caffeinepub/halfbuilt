@@ -641,13 +641,128 @@ export function ShareableProjectCard({
     if (!cardRef.current || isCapturing) return;
     setIsCapturing(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: null,
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
+      const W = 600;
+      const H = 340;
+      const canvas = document.createElement("canvas");
+      canvas.width = W * 2;
+      canvas.height = H * 2;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("No canvas context");
+      ctx.scale(2, 2);
+
+      // Background
+      const bg = ctx.createLinearGradient(0, 0, W, H);
+      bg.addColorStop(0, "#0a0815");
+      bg.addColorStop(1, "#06050f");
+      ctx.fillStyle = bg;
+      ctx.roundRect(0, 0, W, H, 16);
+      ctx.fill();
+
+      // Cyan border glow
+      ctx.strokeStyle = "rgba(34,211,238,0.5)";
+      ctx.lineWidth = 1.5;
+      ctx.roundRect(1, 1, W - 2, H - 2, 15);
+      ctx.stroke();
+
+      // Top accent gradient line
+      const accentGrad = ctx.createLinearGradient(W * 0.25, 0, W * 0.75, 0);
+      accentGrad.addColorStop(0, "transparent");
+      accentGrad.addColorStop(0.5, "rgba(139,92,246,0.8)");
+      accentGrad.addColorStop(1, "transparent");
+      ctx.strokeStyle = accentGrad;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(W * 0.25, 0);
+      ctx.lineTo(W * 0.75, 0);
+      ctx.stroke();
+
+      // Score circle
+      const cx = W - 80;
+      const cy = 80;
+      const r = 44;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(34,211,238,0.15)";
+      ctx.lineWidth = 6;
+      ctx.stroke();
+      const angle = (scorePercent / 100) * Math.PI * 2 - Math.PI / 2;
+      const scoreGrad = ctx.createLinearGradient(
+        cx - r,
+        cy - r,
+        cx + r,
+        cy + r,
+      );
+      scoreGrad.addColorStop(0, "#7c3aed");
+      scoreGrad.addColorStop(1, "#06b6d4");
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, -Math.PI / 2, angle);
+      ctx.strokeStyle = scoreGrad;
+      ctx.lineWidth = 6;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      ctx.fillStyle = "#e0d9ff";
+      ctx.font = "bold 22px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`${scorePercent}%`, cx, cy - 6);
+      ctx.fillStyle = "rgba(139,92,246,0.7)";
+      ctx.font = "10px monospace";
+      ctx.fillText("SCORE", cx, cy + 12);
+
+      // Project name
+      ctx.textAlign = "left";
+      ctx.fillStyle = "#f0eeff";
+      ctx.font = "bold 26px sans-serif";
+      ctx.fillText(
+        projectName.length > 20 ? `${projectName.slice(0, 20)}…` : projectName,
+        28,
+        52,
+      );
+
+      // Cause of death badge
+      ctx.fillStyle = "rgba(124,58,237,0.2)";
+      ctx.strokeStyle = "rgba(124,58,237,0.4)";
+      ctx.lineWidth = 1;
+      ctx.roundRect(28, 70, 180, 22, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#a78bfa";
+      ctx.font = "11px monospace";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`☠ ${causeOfDeath}`, 36, 81);
+
+      // Tagline
+      ctx.fillStyle = "rgba(200,190,255,0.55)";
+      ctx.font = "12px sans-serif";
+      const tagline = `Potential score: ${scorePercent}% — ready for resurrection.`;
+      ctx.fillText(tagline, 28, 116);
+
+      // Footer divider
+      ctx.strokeStyle = "rgba(255,255,255,0.07)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(28, H - 52);
+      ctx.lineTo(W - 28, H - 52);
+      ctx.stroke();
+
+      // Footer text
+      ctx.fillStyle = "rgba(139,92,246,0.7)";
+      ctx.font = "11px monospace";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Resurrect this on", 28, H - 32);
+      ctx.fillStyle = "#22d3ee";
+      ctx.fillText("HalfBuilt.com", 148, H - 32);
+
+      // Price
+      ctx.textAlign = "right";
+      ctx.fillStyle = "#34d399";
+      ctx.font = "bold 15px monospace";
+      ctx.fillText(
+        price !== undefined ? `$${price.toLocaleString()}` : "Make an offer",
+        W - 28,
+        H - 32,
+      );
+
       canvas.toBlob((blob) => {
         if (!blob) {
           toast.error("Failed to capture card");

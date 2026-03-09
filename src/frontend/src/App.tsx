@@ -43,7 +43,12 @@ import { RepositoryAuditDashboard } from "./components/RepositoryAuditDashboard"
 import { SecurePayoutsPage } from "./components/SecurePayoutsPage";
 import { ShareableProjectCard } from "./components/ShareableProjectCard";
 import { TransactionStatusPage } from "./components/TransactionStatusPage";
-import { useListProjects } from "./hooks/useQueries";
+import {
+  useCommunityLinks,
+  useFounderSpotsRemaining,
+  useListProjects,
+  useSubmitProject,
+} from "./hooks/useQueries";
 import type { Project } from "./hooks/useQueries";
 
 // ── Stagger variants ───────────────────────────────────────────────
@@ -208,8 +213,8 @@ function ProjectSubmissionModal({
   );
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const verifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submitProject = useSubmitProject();
 
   // Pre-fill or reset form when modal opens/closes
   useEffect(() => {
@@ -234,7 +239,6 @@ function ProjectSubmissionModal({
     }
     return () => {
       if (verifyTimerRef.current) clearTimeout(verifyTimerRef.current);
-      if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
       if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     };
   }, [
@@ -260,12 +264,26 @@ function ProjectSubmissionModal({
     e.preventDefault();
     if (submitState !== "idle") return;
     setSubmitState("loading");
-    submitTimerRef.current = setTimeout(() => {
-      setSubmitState("success");
-      closeTimerRef.current = setTimeout(() => {
-        onOpenChange(false);
-      }, 2000);
-    }, 1000);
+    submitProject.mutate(
+      {
+        name: projectName,
+        githubUrl,
+        abandonmentReason,
+        askingPrice: Number.parseFloat(askingPrice) || 0,
+        isPublic: publicity === "graveyard",
+      },
+      {
+        onSuccess: () => {
+          setSubmitState("success");
+          closeTimerRef.current = setTimeout(() => {
+            onOpenChange(false);
+          }, 2000);
+        },
+        onError: () => {
+          setSubmitState("idle");
+        },
+      },
+    );
   }
 
   return (
@@ -609,7 +627,6 @@ function ScrollProgressBar() {
 
 // ── Founder Spots Banner ──────────────────────────────────────────
 const TOTAL_FOUNDER_SPOTS = 100;
-const TAKEN_SPOTS = 23; // simulate spots already taken
 
 function FounderSpotsBanner({
   onOpenSubmission,
@@ -618,7 +635,7 @@ function FounderSpotsBanner({
   onOpenSubmission: () => void;
   onDismiss: () => void;
 }) {
-  const remaining = TOTAL_FOUNDER_SPOTS - TAKEN_SPOTS;
+  const { data: remaining, isLoading } = useFounderSpotsRemaining();
 
   return (
     <div
@@ -638,7 +655,14 @@ function FounderSpotsBanner({
 
       <span className="text-muted-foreground/80">
         <span className="text-violet-300 font-bold">
-          {remaining} of {TOTAL_FOUNDER_SPOTS}
+          {isLoading ? (
+            <span className="inline-block w-5 h-3 rounded bg-violet-500/30 animate-pulse align-middle" />
+          ) : remaining !== undefined ? (
+            Number(remaining)
+          ) : (
+            "--"
+          )}{" "}
+          of {TOTAL_FOUNDER_SPOTS}
         </span>{" "}
         Founder Spots remaining — lock in your badge before launch
       </span>
@@ -2549,6 +2573,7 @@ function Footer() {
   const year = new Date().getFullYear();
   const hostname =
     typeof window !== "undefined" ? window.location.hostname : "";
+  const { data: communityLinks } = useCommunityLinks();
 
   return (
     <footer
@@ -2676,7 +2701,7 @@ function Footer() {
               <li>
                 <a
                   data-ocid="footer.community.discord.link"
-                  href="https://discord.gg"
+                  href={communityLinks?.discord ?? "https://discord.gg"}
                   className="flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -2688,7 +2713,7 @@ function Footer() {
               <li>
                 <a
                   data-ocid="footer.community.x.link"
-                  href="https://x.com"
+                  href={communityLinks?.x ?? "https://x.com"}
                   className="flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -2701,7 +2726,7 @@ function Footer() {
               <li>
                 <a
                   data-ocid="footer.community.reddit.link"
-                  href="https://reddit.com"
+                  href={communityLinks?.reddit ?? "https://reddit.com"}
                   className="flex items-center gap-2 font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
                   target="_blank"
                   rel="noopener noreferrer"

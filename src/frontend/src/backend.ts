@@ -99,12 +99,48 @@ export interface Project {
     potentialScore: number;
     price: number;
 }
+export interface CommunityLinks {
+    x: string;
+    discord: string;
+    reddit: string;
+}
 export interface backendInterface {
+    getCommunityLinks(): Promise<CommunityLinks>;
+    getFounderSpotsRemaining(): Promise<bigint>;
     getProject(id: bigint): Promise<Project>;
     listProjects(): Promise<Array<Project>>;
+    submitProject(name: string, githubUrl: string, abandonmentReason: string, askingPrice: number, isPublic: boolean): Promise<bigint>;
 }
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
+    async getCommunityLinks(): Promise<CommunityLinks> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCommunityLinks();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCommunityLinks();
+            return result;
+        }
+    }
+    async getFounderSpotsRemaining(): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getFounderSpotsRemaining();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getFounderSpotsRemaining();
+            return result;
+        }
+    }
     async getProject(arg0: bigint): Promise<Project> {
         if (this.processError) {
             try {
@@ -130,6 +166,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.listProjects();
+            return result;
+        }
+    }
+    async submitProject(arg0: string, arg1: string, arg2: string, arg3: number, arg4: boolean): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitProject(arg0, arg1, arg2, arg3, arg4);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitProject(arg0, arg1, arg2, arg3, arg4);
             return result;
         }
     }
